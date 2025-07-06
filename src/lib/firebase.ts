@@ -1,3 +1,4 @@
+
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getDatabase } from 'firebase/database';
@@ -6,13 +7,14 @@ import { getRemoteConfig } from 'firebase/remote-config';
 
 // Firebase configuration
 const firebaseConfig = {
-  apiKey: "your-api-key-here",
-  authDomain: "your-project.firebaseapp.com",
-  databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "your-app-id"
+  apiKey: "AIzaSyDGNl1qDTgmeloZRaMlNIqADYF99JAsveg",
+  authDomain: "notes-app-42c4f.firebaseapp.com",
+  databaseURL: "https://notes-app-42c4f-default-rtdb.firebaseio.com",
+  projectId: "notes-app-42c4f",
+  storageBucket: "notes-app-42c4f.firebasestorage.app",
+  messagingSenderId: "423058349540",
+  appId: "1:423058349540:web:57723aa1f97c137aa03bf1",
+  measurementId: "G-3B2HV9P73K"
 };
 
 // Initialize Firebase
