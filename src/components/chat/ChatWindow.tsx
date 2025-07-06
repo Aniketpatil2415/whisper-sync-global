@@ -1,11 +1,13 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ref, push, onValue, off, serverTimestamp, get } from 'firebase/database';
+import { ref, push, onValue, off, serverTimestamp, get, update } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { TypingIndicator, TypingDisplay } from './TypingIndicator';
+import { Check, CheckCheck } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -14,6 +16,8 @@ interface Message {
   timestamp: any;
   senderName: string;
   senderAvatar?: string;
+  status?: 'sent' | 'delivered' | 'seen';
+  reactions?: { [userId: string]: string };
 }
 
 interface ChatWindowProps {
@@ -26,28 +30,47 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [otherUser, setOtherUser] = useState<any>(null);
+  const [isGroup, setIsGroup] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { handleTyping, handleStopTyping } = TypingIndicator({ chatId, isGroup });
 
-  // Get other user info
+  // Check if it's a group chat
   useEffect(() => {
-    if (!user || !chatId) return;
-
-    const otherUserId = chatId.split('_').find(id => id !== user.uid);
-    if (!otherUserId) return;
-
-    const otherUserRef = ref(database, `users/${otherUserId}`);
-    get(otherUserRef).then(snapshot => {
-      if (snapshot.exists()) {
-        setOtherUser(snapshot.val());
+    const checkChatType = async () => {
+      if (!chatId) return;
+      
+      // Check if it's a group
+      const groupRef = ref(database, `groups/${chatId}`);
+      const groupSnapshot = await get(groupRef);
+      
+      if (groupSnapshot.exists()) {
+        setIsGroup(true);
+        setOtherUser({ displayName: groupSnapshot.val().name, isGroup: true });
+      } else {
+        setIsGroup(false);
+        // Get other user info for one-to-one chat
+        if (user) {
+          const otherUserId = chatId.split('_').find(id => id !== user.uid);
+          if (otherUserId) {
+            const otherUserRef = ref(database, `users/${otherUserId}`);
+            const snapshot = await get(otherUserRef);
+            if (snapshot.exists()) {
+              setOtherUser(snapshot.val());
+            }
+          }
+        }
       }
-    });
+    };
+
+    checkChatType();
   }, [chatId, user]);
 
   // Load messages
   useEffect(() => {
     if (!chatId) return;
 
-    const messagesRef = ref(database, `chats/${chatId}/messages`);
+    const messagesPath = isGroup ? `groups/${chatId}/messages` : `chats/${chatId}/messages`;
+    const messagesRef = ref(database, messagesPath);
     
     const handleMessagesChange = (snapshot: any) => {
       const data = snapshot.val();
@@ -56,9 +79,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
           id,
           ...msg
         }));
-        // Sort by timestamp
         messagesList.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
         setMessages(messagesList);
+        
+        // Mark messages as seen
+        markMessagesAsSeen(messagesList);
       } else {
         setMessages([]);
       }
@@ -70,7 +95,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
     return () => {
       off(messagesRef, 'value', handleMessagesChange);
     };
-  }, [chatId]);
+  }, [chatId, isGroup]);
+
+  // Mark messages as seen
+  const markMessagesAsSeen = async (messagesList: Message[]) => {
+    if (!user) return;
+    
+    const unseenMessages = messagesList.filter(
+      msg => msg.senderId !== user.uid && msg.status !== 'seen'
+    );
+    
+    for (const message of unseenMessages) {
+      const messagePath = isGroup 
+        ? `groups/${chatId}/messages/${message.id}/status`
+        : `chats/${chatId}/messages/${message.id}/status`;
+      
+      await update(ref(database, messagePath), { seen: true });
+    }
+  };
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -82,7 +124,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
     
     if (!newMessage.trim() || !user || !userProfile) return;
 
-    const messagesRef = ref(database, `chats/${chatId}/messages`);
+    const messagesPath = isGroup ? `groups/${chatId}/messages` : `chats/${chatId}/messages`;
+    const messagesRef = ref(database, messagesPath);
     
     try {
       await push(messagesRef, {
@@ -90,12 +133,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
         senderId: user.uid,
         senderName: userProfile.displayName,
         senderAvatar: userProfile.photoURL || '',
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
+        status: 'sent'
       });
       
       setNewMessage('');
+      handleStopTyping();
     } catch (error) {
       console.error('Error sending message:', error);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    if (e.target.value.trim()) {
+      handleTyping();
+    } else {
+      handleStopTyping();
     }
   };
 
@@ -104,6 +158,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
     
     const date = new Date(typeof timestamp === 'number' ? timestamp : Date.now());
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getMessageStatusIcon = (message: Message) => {
+    if (message.senderId !== user?.uid) return null;
+    
+    if (message.status === 'seen') {
+      return <CheckCheck className="h-3 w-3 text-blue-500" />;
+    } else if (message.status === 'delivered') {
+      return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
+    } else {
+      return <Check className="h-3 w-3 text-muted-foreground" />;
+    }
   };
 
   if (loading) {
@@ -133,11 +199,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
               {otherUser?.displayName || 'Unknown User'}
             </h3>
             <div className="flex items-center space-x-2">
-              {otherUser?.isOnline && (
+              {!isGroup && otherUser?.isOnline && (
                 <div className="w-2 h-2 bg-status-online rounded-full"></div>
               )}
               <p className="text-sm text-muted-foreground">
-                {otherUser?.isOnline ? 'Online' : 'Offline'}
+                {isGroup 
+                  ? 'Group Chat' 
+                  : (otherUser?.isOnline ? 'Online' : 'Offline')
+                }
               </p>
             </div>
           </div>
@@ -176,10 +245,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
                       : 'bg-message-bubble text-foreground'
                     }
                   `}>
+                    {isGroup && !isOwn && (
+                      <p className="text-xs font-medium mb-1 text-primary">
+                        {message.senderName}
+                      </p>
+                    )}
                     <p className="text-sm">{message.text}</p>
-                    <p className={`text-xs mt-1 ${isOwn ? 'text-primary-foreground/70' : 'text-message-timestamp'}`}>
-                      {formatMessageTime(message.timestamp)}
-                    </p>
+                    <div className="flex items-center justify-end space-x-1 mt-1">
+                      <p className={`text-xs ${isOwn ? 'text-primary-foreground/70' : 'text-message-timestamp'}`}>
+                        {formatMessageTime(message.timestamp)}
+                      </p>
+                      {getMessageStatusIcon(message)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -189,6 +266,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Typing Indicator */}
+      <TypingDisplay chatId={chatId} />
+
       {/* Message Input */}
       <div className="p-4 border-t border-border bg-card">
         <form onSubmit={handleSendMessage} className="flex space-x-2">
@@ -196,7 +276,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
             type="text"
             placeholder="Type a message..."
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={handleInputChange}
             className="flex-1"
           />
           <Button 

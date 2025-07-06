@@ -1,27 +1,39 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useRemoteConfig } from '@/hooks/useRemoteConfig';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatWindow } from './ChatWindow';
 import { ProfileSetup } from './ProfileSetup';
+import { GroupChatModal } from './GroupChatModal';
+import { Moon, Sun, Users, Plus } from 'lucide-react';
 
 export const ChatLayout = () => {
   const { user, userProfile, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+  const { config } = useRemoteConfig();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(!userProfile?.displayName);
+  const [showGroupModal, setShowGroupModal] = useState(false);
 
   if (showProfile || !userProfile?.displayName) {
     return <ProfileSetup onComplete={() => setShowProfile(false)} />;
   }
 
+  const handleGroupCreated = (groupId: string) => {
+    setSelectedChat(groupId);
+  };
+
   return (
-    <div className="flex h-screen bg-chat-background">
+    <div className="flex h-screen bg-background text-foreground">
       {/* Sidebar */}
-      <div className="w-80 bg-chat-sidebar border-r border-border flex flex-col">
+      <div className="w-80 bg-card border-r border-border flex flex-col">
         {/* Header */}
         <div className="p-4 border-b border-border">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={userProfile?.photoURL} />
@@ -38,7 +50,15 @@ export const ChatLayout = () => {
                 </p>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex space-x-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -56,6 +76,29 @@ export const ChatLayout = () => {
                 Logout
               </Button>
             </div>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex space-x-2">
+            {config.enableGroupChat && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowGroupModal(true)}
+                className="flex items-center space-x-2 flex-1"
+              >
+                <Users className="h-4 w-4" />
+                <span>New Group</span>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2 flex-1"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Chat</span>
+            </Button>
           </div>
         </div>
 
@@ -89,7 +132,7 @@ export const ChatLayout = () => {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-2">
-                Welcome to ChatApp
+                {config.welcomeMessage}
               </h3>
               <p className="text-muted-foreground">
                 Select a chat to start messaging
@@ -98,6 +141,13 @@ export const ChatLayout = () => {
           </div>
         )}
       </div>
+
+      {/* Group Chat Modal */}
+      <GroupChatModal
+        isOpen={showGroupModal}
+        onClose={() => setShowGroupModal(false)}
+        onGroupCreated={handleGroupCreated}
+      />
     </div>
   );
 };
