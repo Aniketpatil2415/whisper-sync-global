@@ -26,7 +26,8 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					glow: 'hsl(var(--primary-glow))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -61,7 +62,25 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Chat-specific colors
+				chat: {
+					background: 'hsl(var(--chat-background))',
+					sidebar: 'hsl(var(--sidebar-background))'
+				},
+				message: {
+					bubble: 'hsl(var(--message-bubble))',
+					own: 'hsl(var(--message-bubble-own))',
+					timestamp: 'hsl(var(--message-timestamp))'
+				},
+				status: {
+					online: 'hsl(var(--online-indicator))',
+					typing: 'hsl(var(--typing-indicator))',
+					success: 'hsl(var(--success))',
+					warning: 'hsl(var(--warning))',
+					info: 'hsl(var(--info))'
+				},
+				unread: 'hsl(var(--unread-badge))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
