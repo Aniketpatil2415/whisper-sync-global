@@ -338,6 +338,32 @@ export const AdminPanel: React.FC = () => {
                       onCheckedChange={() => toggleFeature('enableVoiceMessages')}
                     />
                   </div>
+
+                  <div className="flex items-center justify-between p-3 md:p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <Label className="text-sm md:text-base">Message Reactions</Label>
+                      <p className="text-xs md:text-sm text-muted-foreground">
+                        Allow users to react to messages with emojis
+                      </p>
+                    </div>
+                    <Switch
+                      checked={adminSettings.featureFlags.enableMessageReactions}
+                      onCheckedChange={() => toggleFeature('enableMessageReactions')}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 md:p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <Label className="text-sm md:text-base">Message Deletion</Label>
+                      <p className="text-xs md:text-sm text-muted-foreground">
+                        Allow users to delete messages for themselves or everyone
+                      </p>
+                    </div>
+                    <Switch
+                      checked={adminSettings.featureFlags.enableMessageDeletion}
+                      onCheckedChange={() => toggleFeature('enableMessageDeletion')}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>

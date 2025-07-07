@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ref, push, onValue, off, serverTimestamp, get, update } from 'firebase/database';
@@ -7,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useTypingIndicator, TypingDisplay } from './TypingIndicator';
+import { MessageActions } from './MessageActions';
 import { Check, CheckCheck, ArrowLeft } from 'lucide-react';
 
 interface Message {
@@ -18,6 +18,8 @@ interface Message {
   senderAvatar?: string;
   status?: 'sent' | 'delivered' | 'seen';
   reactions?: { [userId: string]: string };
+  deletedForEveryone?: boolean;
+  deletedFor?: string[];
 }
 
 interface ChatWindowProps {
@@ -81,10 +83,18 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack }) => {
           ...msg
         }));
         messagesList.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-        setMessages(messagesList);
+        
+        // Filter out messages deleted for current user
+        const filteredMessages = messagesList.filter((msg: Message) => {
+          if (msg.deletedForEveryone) return false;
+          if (msg.deletedFor?.includes(user?.uid || '')) return false;
+          return true;
+        });
+        
+        setMessages(filteredMessages);
         
         // Mark messages as seen
-        markMessagesAsSeen(messagesList);
+        markMessagesAsSeen(filteredMessages);
       } else {
         setMessages([]);
       }
@@ -96,7 +106,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack }) => {
     return () => {
       off(messagesRef, 'value', handleMessagesChange);
     };
-  }, [chatId, isGroup]);
+  }, [chatId, isGroup, user]);
 
   // Mark messages as seen
   const markMessagesAsSeen = async (messagesList: Message[]) => {
@@ -249,26 +259,32 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack }) => {
                     </Avatar>
                   )}
                   
-                  <div className={`
-                    rounded-lg px-3 py-2 relative
-                    ${isOwn 
-                      ? 'bg-message-own text-primary-foreground' 
-                      : 'bg-message-bubble text-foreground'
-                    }
-                  `}>
-                    {isGroup && !isOwn && (
-                      <p className="text-xs font-medium mb-1 text-primary">
-                        {message.senderName}
-                      </p>
-                    )}
-                    <p className="text-sm break-words">{message.text}</p>
-                    <div className="flex items-center justify-end space-x-1 mt-1">
-                      <p className={`text-xs ${isOwn ? 'text-primary-foreground/70' : 'text-message-timestamp'}`}>
-                        {formatMessageTime(message.timestamp)}
-                      </p>
-                      {getMessageStatusIcon(message)}
+                  <MessageActions 
+                    message={message} 
+                    chatId={chatId} 
+                    isGroup={isGroup}
+                  >
+                    <div className={`
+                      rounded-lg px-3 py-2 relative
+                      ${isOwn 
+                        ? 'bg-message-own text-primary-foreground' 
+                        : 'bg-message-bubble text-foreground'
+                      }
+                    `}>
+                      {isGroup && !isOwn && (
+                        <p className="text-xs font-medium mb-1 text-primary">
+                          {message.senderName}
+                        </p>
+                      )}
+                      <p className="text-sm break-words">{message.text}</p>
+                      <div className="flex items-center justify-end space-x-1 mt-1">
+                        <p className={`text-xs ${isOwn ? 'text-primary-foreground/70' : 'text-message-timestamp'}`}>
+                          {formatMessageTime(message.timestamp)}
+                        </p>
+                        {getMessageStatusIcon(message)}
+                      </div>
                     </div>
-                  </div>
+                  </MessageActions>
                 </div>
               </div>
             );

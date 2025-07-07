@@ -1,8 +1,19 @@
-
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { ref, get, set, onValue, off, push, serverTimestamp } from 'firebase/database';
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { ref, update, get } from 'firebase/database';
 import { database } from '@/lib/firebase';
+import { useAuth } from './AuthContext';
+
+interface AdminContextProps {
+  isAdmin: boolean;
+  adminSettings: AdminSettings;
+  giveBlueTickToUser: (userId: string) => Promise<void>;
+  removeUser: (userId: string) => Promise<void>;
+  disableUser: (userId: string, durationInDays: number) => Promise<void>;
+  toggleFeature: (feature: string) => Promise<void>;
+  toggleMaintenanceMode: () => Promise<void>;
+  removeGroup: (groupId: string) => Promise<void>;
+  deleteChat: (chatId: string) => Promise<void>;
+}
 
 interface AdminSettings {
   maintenanceMode: boolean;
@@ -10,237 +21,144 @@ interface AdminSettings {
     enableGroupChat: boolean;
     enableFileSharing: boolean;
     enableVoiceMessages: boolean;
+    enableMessageReactions: boolean;
+    enableMessageDeletion: boolean;
   };
 }
 
-interface AdminContextType {
-  isAdmin: boolean;
-  adminSettings: AdminSettings;
-  giveBlueTickToUser: (userId: string) => Promise<void>;
-  removeUser: (userId: string) => Promise<void>;
-  disableUser: (userId: string, duration: number) => Promise<void>;
-  toggleFeature: (feature: keyof AdminSettings['featureFlags']) => Promise<void>;
-  toggleMaintenanceMode: () => Promise<void>;
-  removeGroup: (groupId: string) => Promise<void>;
-  deleteChat: (chatId: string) => Promise<void>;
-}
+const AdminContext = createContext<AdminContextProps | undefined>(undefined);
 
-const AdminContext = createContext<AdminContextType | undefined>(undefined);
-
-export const useAdmin = () => {
-  const context = useContext(AdminContext);
-  if (!context) {
-    throw new Error('useAdmin must be used within an AdminProvider');
+const initialSettings: AdminSettings = {
+  maintenanceMode: false,
+  featureFlags: {
+    enableGroupChat: true,
+    enableFileSharing: true,
+    enableVoiceMessages: true,
+    enableMessageReactions: true,
+    enableMessageDeletion: true,
   }
-  return context;
 };
 
-interface AdminProviderProps {
-  children: ReactNode;
-}
-
-export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
-  const { user, userProfile } = useAuth();
+export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [adminSettings, setAdminSettings] = useState<AdminSettings>({
-    maintenanceMode: false,
-    featureFlags: {
-      enableGroupChat: true,
-      enableFileSharing: true,
-      enableVoiceMessages: false,
-    }
-  });
+  const [adminSettings, setAdminSettings] = useState<AdminSettings>(initialSettings);
 
-  // Check if current user is admin
   useEffect(() => {
-    if (user && userProfile) {
-      const adminEmail = 'aniketpatil2415@gmail.com';
-      setIsAdmin(user.email === adminEmail);
-    }
-  }, [user, userProfile]);
+    const checkAdminStatus = async () => {
+      if (user) {
+        const adminRef = ref(database, `admins/${user.uid}`);
+        const snapshot = await get(adminRef);
+        setIsAdmin(snapshot.exists());
+      } else {
+        setIsAdmin(false);
+      }
+    };
 
-  // Load admin settings with real-time updates
+    checkAdminStatus();
+  }, [user]);
+
   useEffect(() => {
-    const settingsRef = ref(database, 'adminSettings');
-    
-    // Initialize default settings if they don't exist
-    const initializeSettings = async () => {
+    const fetchAdminSettings = async () => {
+      const settingsRef = ref(database, 'adminSettings');
       const snapshot = await get(settingsRef);
-      if (!snapshot.exists()) {
-        await set(settingsRef, adminSettings);
+      if (snapshot.exists()) {
+        setAdminSettings(snapshot.val());
       }
     };
 
-    const handleSettingsChange = (snapshot: any) => {
-      const data = snapshot.val();
-      if (data) {
-        setAdminSettings(data);
-      }
-    };
-
-    initializeSettings();
-    onValue(settingsRef, handleSettingsChange);
-
-    return () => {
-      off(settingsRef, 'value', handleSettingsChange);
-    };
+    fetchAdminSettings();
   }, []);
 
   const giveBlueTickToUser = async (userId: string) => {
-    if (!isAdmin) return;
-    
-    const userRef = ref(database, `users/${userId}`);
-    const snapshot = await get(userRef);
-    
-    if (snapshot.exists()) {
-      const userData = snapshot.val();
-      await set(userRef, {
-        ...userData,
-        isVerified: true,
-        verifiedAt: serverTimestamp(),
-        verifiedBy: user?.uid
-      });
-      
-      // Log admin action
-      const logRef = push(ref(database, 'adminLogs'));
-      await set(logRef, {
-        action: 'BLUE_TICK_GRANTED',
-        targetUserId: userId,
-        adminId: user?.uid,
-        timestamp: serverTimestamp()
-      });
+    try {
+      const userRef = ref(database, `users/${userId}`);
+      await update(userRef, { isVerified: true });
+    } catch (error) {
+      console.error("Error giving blue tick:", error);
+      throw error;
     }
   };
 
   const removeUser = async (userId: string) => {
-    if (!isAdmin) return;
-    
-    const userRef = ref(database, `users/${userId}`);
-    await set(userRef, null);
-    
-    // Log admin action
-    const logRef = push(ref(database, 'adminLogs'));
-    await set(logRef, {
-      action: 'USER_REMOVED',
-      targetUserId: userId,
-      adminId: user?.uid,
-      timestamp: serverTimestamp()
-    });
-  };
-
-  const disableUser = async (userId: string, duration: number) => {
-    if (!isAdmin) return;
-    
-    const userRef = ref(database, `users/${userId}`);
-    const snapshot = await get(userRef);
-    
-    if (snapshot.exists()) {
-      const userData = snapshot.val();
-      const disabledUntil = Date.now() + (duration * 24 * 60 * 60 * 1000); // duration in days
-      
-      await set(userRef, {
-        ...userData,
-        isDisabled: true,
-        disabledUntil,
-        disabledBy: user?.uid,
-        disabledAt: serverTimestamp()
-      });
-      
-      // Log admin action
-      const logRef = push(ref(database, 'adminLogs'));
-      await set(logRef, {
-        action: 'USER_DISABLED',
-        targetUserId: userId,
-        duration: duration,
-        adminId: user?.uid,
-        timestamp: serverTimestamp()
-      });
+    try {
+      const userRef = ref(database, `users/${userId}`);
+      await update(userRef, { isDisabled: true });
+    } catch (error) {
+      console.error("Error removing user:", error);
+      throw error;
     }
   };
 
-  const toggleFeature = async (feature: keyof AdminSettings['featureFlags']) => {
-    if (!isAdmin) return;
-    
-    const newSettings = {
-      ...adminSettings,
-      featureFlags: {
-        ...adminSettings.featureFlags,
-        [feature]: !adminSettings.featureFlags[feature]
-      }
-    };
-    
-    const settingsRef = ref(database, 'adminSettings');
-    await set(settingsRef, newSettings);
-    
-    // Log admin action
-    const logRef = push(ref(database, 'adminLogs'));
-    await set(logRef, {
-      action: 'FEATURE_TOGGLED',
-      feature: feature,
-      enabled: newSettings.featureFlags[feature],
-      adminId: user?.uid,
-      timestamp: serverTimestamp()
-    });
+  const disableUser = async (userId: string, durationInDays: number) => {
+    try {
+      const userRef = ref(database, `users/${userId}`);
+      const disableUntil = Date.now() + durationInDays * 24 * 60 * 60 * 1000;
+      await update(userRef, { isDisabled: true, disabledUntil: disableUntil });
+    } catch (error) {
+      console.error("Error disabling user:", error);
+      throw error;
+    }
+  };
+
+  const toggleFeature = async (feature: string) => {
+    try {
+      const featureRef = ref(database, `adminSettings/featureFlags/${feature}`);
+      const snapshot = await get(featureRef);
+      const currentValue = snapshot.val() || false;
+      await update(featureRef, { [feature]: !currentValue });
+
+      // Optimistically update local state
+      setAdminSettings(prevSettings => ({
+        ...prevSettings,
+        featureFlags: {
+          ...prevSettings.featureFlags,
+          [feature]: !currentValue
+        }
+      }));
+    } catch (error) {
+      console.error("Error toggling feature:", error);
+      throw error;
+    }
   };
 
   const toggleMaintenanceMode = async () => {
-    if (!isAdmin) return;
-    
-    const newSettings = {
-      ...adminSettings,
-      maintenanceMode: !adminSettings.maintenanceMode
+    try {
+      const maintenanceRef = ref(database, 'adminSettings/maintenanceMode');
+      await update(maintenanceRef, { maintenanceMode: !adminSettings.maintenanceMode });
+
+      // Optimistically update local state
+      setAdminSettings(prevSettings => ({
+        ...prevSettings,
+        maintenanceMode: !prevSettings.maintenanceMode
+      }));
+    } catch (error) {
+      console.error("Error toggling maintenance mode:", error);
+      throw error;
+    }
+  };
+
+    const removeGroup = async (groupId: string) => {
+        try {
+            const groupRef = ref(database, `groups/${groupId}`);
+            await update(groupRef, { isDeleted: true });
+        } catch (error) {
+            console.error("Error removing group:", error);
+            throw error;
+        }
     };
-    
-    const settingsRef = ref(database, 'adminSettings');
-    await set(settingsRef, newSettings);
-    
-    // Log admin action
-    const logRef = push(ref(database, 'adminLogs'));
-    await set(logRef, {
-      action: 'MAINTENANCE_MODE_TOGGLED',
-      enabled: newSettings.maintenanceMode,
-      adminId: user?.uid,
-      timestamp: serverTimestamp()
-    });
-  };
 
-  const removeGroup = async (groupId: string) => {
-    if (!isAdmin) return;
-    
-    const groupRef = ref(database, `groups/${groupId}`);
-    await set(groupRef, null);
-    
-    // Remove all messages in the group
-    const messagesRef = ref(database, `messages/${groupId}`);
-    await set(messagesRef, null);
-    
-    // Log admin action
-    const logRef = push(ref(database, 'adminLogs'));
-    await set(logRef, {
-      action: 'GROUP_REMOVED',
-      targetGroupId: groupId,
-      adminId: user?.uid,
-      timestamp: serverTimestamp()
-    });
-  };
+    const deleteChat = async (chatId: string) => {
+        try {
+            const chatRef = ref(database, `chats/${chatId}`);
+            await update(chatRef, { isDeleted: true });
+        } catch (error) {
+            console.error("Error deleting chat:", error);
+            throw error;
+        }
+    };
 
-  const deleteChat = async (chatId: string) => {
-    if (!isAdmin) return;
-    
-    const messagesRef = ref(database, `messages/${chatId}`);
-    await set(messagesRef, null);
-    
-    // Log admin action
-    const logRef = push(ref(database, 'adminLogs'));
-    await set(logRef, {
-      action: 'CHAT_DELETED',
-      targetChatId: chatId,
-      adminId: user?.uid,
-      timestamp: serverTimestamp()
-    });
-  };
-
-  const value: AdminContextType = {
+  const value: AdminContextProps = {
     isAdmin,
     adminSettings,
     giveBlueTickToUser,
@@ -249,7 +167,7 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     toggleFeature,
     toggleMaintenanceMode,
     removeGroup,
-    deleteChat
+    deleteChat,
   };
 
   return (
@@ -257,4 +175,12 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       {children}
     </AdminContext.Provider>
   );
+};
+
+export const useAdmin = () => {
+  const context = useContext(AdminContext);
+  if (context === undefined) {
+    throw new Error("useAdmin must be used within an AdminProvider");
+  }
+  return context;
 };
