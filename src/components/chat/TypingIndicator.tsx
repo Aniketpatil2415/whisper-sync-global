@@ -9,10 +9,8 @@ interface TypingIndicatorProps {
   isGroup?: boolean;
 }
 
-export const TypingIndicator: React.FC<TypingIndicatorProps> = ({ 
-  chatId, 
-  isGroup = false 
-}) => {
+// Custom hook for typing functionality
+export const useTypingIndicator = ({ chatId, isGroup = false }: TypingIndicatorProps) => {
   const { user, userProfile } = useAuth();
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const [isTyping, setIsTyping] = useState(false);
@@ -99,8 +97,9 @@ export const TypingIndicator: React.FC<TypingIndicatorProps> = ({
   };
 };
 
+// Component for displaying typing indicator
 export const TypingDisplay: React.FC<{ chatId: string }> = ({ chatId }) => {
-  const { typingText, isAnyoneTyping } = TypingIndicator({ chatId });
+  const { typingText, isAnyoneTyping } = useTypingIndicator({ chatId });
 
   if (!isAnyoneTyping) return null;
 

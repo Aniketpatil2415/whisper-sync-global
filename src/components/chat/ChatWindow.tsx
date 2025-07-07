@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ref, push, onValue, off, serverTimestamp, get, update } from 'firebase/database';
@@ -6,7 +5,7 @@ import { database } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { TypingIndicator, TypingDisplay } from './TypingIndicator';
+import { useTypingIndicator, TypingDisplay } from './TypingIndicator';
 import { Check, CheckCheck } from 'lucide-react';
 
 interface Message {
@@ -32,7 +31,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
   const [otherUser, setOtherUser] = useState<any>(null);
   const [isGroup, setIsGroup] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { handleTyping, handleStopTyping } = TypingIndicator({ chatId, isGroup });
+  const { handleTyping, handleStopTyping } = useTypingIndicator({ chatId, isGroup });
 
   // Check if it's a group chat
   useEffect(() => {
