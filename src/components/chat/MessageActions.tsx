@@ -52,11 +52,18 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   const isDeleted = message.deletedForEveryone || message.deletedFor?.includes(user?.uid || '');
 
   const handleReaction = async (emoji: string) => {
-    if (!user || !adminSettings.featureFlags.enableMessageReactions) return;
+    if (!user || !adminSettings.featureFlags.enableMessageReactions) {
+      toast({
+        title: "Feature disabled",
+        description: "Message reactions are currently disabled",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const messagePath = isGroup 
-      ? `groups/${chatId}/messages/${message.id}/reactions`
-      : `chats/${chatId}/messages/${message.id}/reactions`;
+      ? `groups/${chatId}/messages/${message.id}`
+      : `chats/${chatId}/messages/${message.id}`;
 
     try {
       const currentReaction = message.reactions?.[user.uid];
@@ -64,13 +71,18 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
       
       if (currentReaction === emoji) {
         // Remove reaction
-        updates[`${messagePath}/${user.uid}`] = null;
+        updates[`reactions/${user.uid}`] = null;
       } else {
         // Add/change reaction
-        updates[`${messagePath}/${user.uid}`] = emoji;
+        updates[`reactions/${user.uid}`] = emoji;
       }
 
-      await update(ref(database), updates);
+      await update(ref(database, messagePath), updates);
+      
+      toast({
+        title: currentReaction === emoji ? "Reaction removed" : "Reaction added",
+        description: `${emoji} reaction ${currentReaction === emoji ? 'removed' : 'added'}`
+      });
     } catch (error) {
       console.error('Error updating reaction:', error);
       toast({
@@ -82,17 +94,26 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   };
 
   const handleDeleteForMe = async () => {
-    if (!user || !adminSettings.featureFlags.enableMessageDeletion) return;
+    if (!user || !adminSettings.featureFlags.enableMessageDeletion) {
+      toast({
+        title: "Feature disabled",
+        description: "Message deletion is currently disabled",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const messagePath = isGroup 
-      ? `groups/${chatId}/messages/${message.id}/deletedFor`
-      : `chats/${chatId}/messages/${message.id}/deletedFor`;
+      ? `groups/${chatId}/messages/${message.id}`
+      : `chats/${chatId}/messages/${message.id}`;
 
     try {
       const deletedFor = message.deletedFor || [];
       const updatedDeletedFor = [...deletedFor, user.uid];
       
-      await update(ref(database, messagePath), updatedDeletedFor);
+      await update(ref(database, messagePath), { 
+        deletedFor: updatedDeletedFor 
+      });
       
       toast({
         title: "Message deleted",
@@ -109,14 +130,24 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   };
 
   const handleDeleteForEveryone = async () => {
-    if (!user || !canDeleteForEveryone || !adminSettings.featureFlags.enableMessageDeletion) return;
+    if (!user || !canDeleteForEveryone || !adminSettings.featureFlags.enableMessageDeletion) {
+      toast({
+        title: "Feature disabled",
+        description: "Message deletion is currently disabled",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const messagePath = isGroup 
       ? `groups/${chatId}/messages/${message.id}`
       : `chats/${chatId}/messages/${message.id}`;
 
     try {
-      await update(ref(database, messagePath), { deletedForEveryone: true });
+      await update(ref(database, messagePath), { 
+        deletedForEveryone: true,
+        text: "This message was deleted"
+      });
       
       toast({
         title: "Message deleted",
@@ -147,7 +178,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
           {children}
           
           {/* Reaction Display */}
-          {message.reactions && Object.keys(message.reactions).length > 0 && (
+          {adminSettings.featureFlags.enableMessageReactions && message.reactions && Object.keys(message.reactions).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
               {Object.entries(
                 Object.values(message.reactions).reduce((acc: any, emoji) => {
@@ -158,13 +189,13 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
                 <button
                   key={emoji}
                   onClick={() => handleReaction(emoji)}
-                  className={`text-xs px-1 py-0.5 rounded-full border ${
+                  className={`text-xs px-2 py-1 rounded-full border transition-colors ${
                     message.reactions?.[user?.uid || ''] === emoji
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-background hover:bg-accent'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background hover:bg-accent border-border'
                   }`}
                 >
-                  {emoji} {String(count)}
+                  {emoji} {count}
                 </button>
               ))}
             </div>
@@ -176,6 +207,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
         {adminSettings.featureFlags.enableMessageReactions && (
           <>
             <div className="p-2">
+              <div className="text-xs text-muted-foreground mb-2">React with</div>
               <div className="flex gap-1">
                 {REACTIONS.map((emoji) => (
                   <Button
@@ -208,6 +240,12 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
               </ContextMenuItem>
             )}
           </>
+        )}
+        
+        {!adminSettings.featureFlags.enableMessageReactions && !adminSettings.featureFlags.enableMessageDeletion && (
+          <div className="p-2 text-xs text-muted-foreground text-center">
+            No actions available
+          </div>
         )}
       </ContextMenuContent>
     </ContextMenu>

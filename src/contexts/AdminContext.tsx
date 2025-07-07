@@ -1,5 +1,6 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { ref, update, get } from 'firebase/database';
+import { ref, update, get, onValue, off } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
 
@@ -59,15 +60,24 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [user]);
 
   useEffect(() => {
-    const fetchAdminSettings = async () => {
-      const settingsRef = ref(database, 'adminSettings');
-      const snapshot = await get(settingsRef);
-      if (snapshot.exists()) {
-        setAdminSettings(snapshot.val());
+    const settingsRef = ref(database, 'adminSettings');
+    
+    const handleSettingsChange = (snapshot: any) => {
+      const data = snapshot.val();
+      if (data) {
+        setAdminSettings(data);
+      } else {
+        // Initialize with default settings if none exist
+        update(settingsRef, initialSettings);
+        setAdminSettings(initialSettings);
       }
     };
 
-    fetchAdminSettings();
+    onValue(settingsRef, handleSettingsChange);
+
+    return () => {
+      off(settingsRef, 'value', handleSettingsChange);
+    };
   }, []);
 
   const giveBlueTickToUser = async (userId: string) => {
@@ -103,17 +113,18 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const toggleFeature = async (feature: string) => {
     try {
+      const currentValue = adminSettings.featureFlags[feature as keyof typeof adminSettings.featureFlags];
+      const newValue = !currentValue;
+      
       const featureRef = ref(database, `adminSettings/featureFlags/${feature}`);
-      const snapshot = await get(featureRef);
-      const currentValue = snapshot.val() || false;
-      await update(featureRef, { [feature]: !currentValue });
+      await update(featureRef, newValue);
 
-      // Optimistically update local state
+      // Update local state
       setAdminSettings(prevSettings => ({
         ...prevSettings,
         featureFlags: {
           ...prevSettings.featureFlags,
-          [feature]: !currentValue
+          [feature]: newValue
         }
       }));
     } catch (error) {
@@ -124,13 +135,14 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const toggleMaintenanceMode = async () => {
     try {
+      const newValue = !adminSettings.maintenanceMode;
       const maintenanceRef = ref(database, 'adminSettings/maintenanceMode');
-      await update(maintenanceRef, { maintenanceMode: !adminSettings.maintenanceMode });
+      await update(maintenanceRef, newValue);
 
-      // Optimistically update local state
+      // Update local state
       setAdminSettings(prevSettings => ({
         ...prevSettings,
-        maintenanceMode: !prevSettings.maintenanceMode
+        maintenanceMode: newValue
       }));
     } catch (error) {
       console.error("Error toggling maintenance mode:", error);
@@ -138,25 +150,25 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-    const removeGroup = async (groupId: string) => {
-        try {
-            const groupRef = ref(database, `groups/${groupId}`);
-            await update(groupRef, { isDeleted: true });
-        } catch (error) {
-            console.error("Error removing group:", error);
-            throw error;
-        }
-    };
+  const removeGroup = async (groupId: string) => {
+    try {
+      const groupRef = ref(database, `groups/${groupId}`);
+      await update(groupRef, { isDeleted: true });
+    } catch (error) {
+      console.error("Error removing group:", error);
+      throw error;
+    }
+  };
 
-    const deleteChat = async (chatId: string) => {
-        try {
-            const chatRef = ref(database, `chats/${chatId}`);
-            await update(chatRef, { isDeleted: true });
-        } catch (error) {
-            console.error("Error deleting chat:", error);
-            throw error;
-        }
-    };
+  const deleteChat = async (chatId: string) => {
+    try {
+      const chatRef = ref(database, `chats/${chatId}`);
+      await update(chatRef, { isDeleted: true });
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      throw error;
+    }
+  };
 
   const value: AdminContextProps = {
     isAdmin,
