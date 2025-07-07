@@ -195,7 +195,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
                       : 'bg-background hover:bg-accent border-border'
                   }`}
                 >
-                  {emoji} {count}
+                  {emoji} {String(count)}
                 </button>
               ))}
             </div>

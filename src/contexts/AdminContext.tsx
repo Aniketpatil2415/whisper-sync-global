@@ -117,7 +117,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const newValue = !currentValue;
       
       const featureRef = ref(database, `adminSettings/featureFlags/${feature}`);
-      await update(featureRef, newValue);
+      await update(featureRef, { [feature]: newValue });
 
       // Update local state
       setAdminSettings(prevSettings => ({
@@ -137,7 +137,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const newValue = !adminSettings.maintenanceMode;
       const maintenanceRef = ref(database, 'adminSettings/maintenanceMode');
-      await update(maintenanceRef, newValue);
+      await update(maintenanceRef, { maintenanceMode: newValue });
 
       // Update local state
       setAdminSettings(prevSettings => ({
