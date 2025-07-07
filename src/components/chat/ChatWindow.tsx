@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { ref, push, onValue, off, serverTimestamp, get, update } from 'firebase/database';
@@ -6,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useTypingIndicator, TypingDisplay } from './TypingIndicator';
-import { Check, CheckCheck } from 'lucide-react';
+import { Check, CheckCheck, ArrowLeft } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -21,9 +22,10 @@ interface Message {
 
 interface ChatWindowProps {
   chatId: string;
+  onBack?: () => void;
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack }) => {
   const { user, userProfile } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -185,23 +187,33 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
   return (
     <div className="flex-1 flex flex-col bg-background">
       {/* Chat Header */}
-      <div className="p-4 border-b border-border bg-card">
+      <div className="p-3 md:p-4 border-b border-border bg-card">
         <div className="flex items-center space-x-3">
-          <Avatar className="h-10 w-10">
+          {onBack && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="md:hidden p-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <Avatar className="h-8 w-8 md:h-10 md:w-10">
             <AvatarImage src={otherUser?.photoURL} />
             <AvatarFallback className="bg-primary text-primary-foreground">
               {otherUser?.displayName?.[0]?.toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
-            <h3 className="font-semibold text-foreground">
+            <h3 className="font-semibold text-foreground text-sm md:text-base">
               {otherUser?.displayName || 'Unknown User'}
             </h3>
             <div className="flex items-center space-x-2">
               {!isGroup && otherUser?.isOnline && (
                 <div className="w-2 h-2 bg-status-online rounded-full"></div>
               )}
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground">
                 {isGroup 
                   ? 'Group Chat' 
                   : (otherUser?.isOnline ? 'Online' : 'Offline')
@@ -213,10 +225,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            <p>No messages yet. Start the conversation!</p>
+            <p className="text-sm md:text-base">No messages yet. Start the conversation!</p>
           </div>
         ) : (
           messages.map((message) => {
@@ -227,9 +239,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
                 key={message.id}
                 className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`flex space-x-2 max-w-xs lg:max-w-md ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                <div className={`flex space-x-2 max-w-[280px] md:max-w-xs lg:max-w-md ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}>
                   {!isOwn && (
-                    <Avatar className="h-8 w-8 mt-auto">
+                    <Avatar className="h-6 w-6 md:h-8 md:w-8 mt-auto flex-shrink-0">
                       <AvatarImage src={message.senderAvatar} />
                       <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                         {message.senderName?.[0]?.toUpperCase()}
@@ -249,7 +261,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
                         {message.senderName}
                       </p>
                     )}
-                    <p className="text-sm">{message.text}</p>
+                    <p className="text-sm break-words">{message.text}</p>
                     <div className="flex items-center justify-end space-x-1 mt-1">
                       <p className={`text-xs ${isOwn ? 'text-primary-foreground/70' : 'text-message-timestamp'}`}>
                         {formatMessageTime(message.timestamp)}
@@ -269,21 +281,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId }) => {
       <TypingDisplay chatId={chatId} />
 
       {/* Message Input */}
-      <div className="p-4 border-t border-border bg-card">
+      <div className="p-3 md:p-4 border-t border-border bg-card">
         <form onSubmit={handleSendMessage} className="flex space-x-2">
           <Input
             type="text"
             placeholder="Type a message..."
             value={newMessage}
             onChange={handleInputChange}
-            className="flex-1"
+            className="flex-1 text-sm md:text-base"
           />
           <Button 
             type="submit" 
             disabled={!newMessage.trim()}
-            className="bg-primary hover:bg-primary-glow"
+            className="bg-primary hover:bg-primary-glow px-3 md:px-4"
+            size="sm"
           >
-            Send
+            <span className="text-xs md:text-sm">Send</span>
           </Button>
         </form>
       </div>
