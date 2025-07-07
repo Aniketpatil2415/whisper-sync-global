@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { remoteConfig } from '@/lib/firebase';
-import { fetchAndActivate, getValue, getBoolean, getString, setDefaults } from 'firebase/remote-config';
+import { fetchAndActivate, getValue, getBoolean, getString } from 'firebase/remote-config';
 
 interface RemoteConfigValues {
   enableGroupChat: boolean;
@@ -22,13 +22,13 @@ export const useRemoteConfig = () => {
   useEffect(() => {
     const initializeRemoteConfig = async () => {
       try {
-        // Set default values using setDefaults
-        await setDefaults(remoteConfig, {
+        // Set default values directly on the remoteConfig instance
+        remoteConfig.defaultConfig = {
           enableGroupChat: true,
           maxGroupMembers: 50,
           welcomeMessage: 'Welcome to ChatApp!',
           appVersion: '1.0.0'
-        });
+        };
 
         // Fetch and activate
         await fetchAndActivate(remoteConfig);
