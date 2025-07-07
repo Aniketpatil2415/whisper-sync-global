@@ -46,10 +46,14 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
   const { user } = useAuth();
   const { adminSettings } = useAdmin();
   const { toast } = useToast();
-  const [showReactions, setShowReactions] = useState(false);
 
   const canDeleteForEveryone = message.senderId === user?.uid;
   const isDeleted = message.deletedForEveryone || message.deletedFor?.includes(user?.uid || '');
+
+  // Check if there are any actions available
+  const hasReactions = adminSettings.featureFlags.enableMessageReactions;
+  const hasDeletion = adminSettings.featureFlags.enableMessageDeletion;
+  const hasAnyActions = hasReactions || hasDeletion;
 
   const handleReaction = async (emoji: string) => {
     if (!user || !adminSettings.featureFlags.enableMessageReactions) {
@@ -171,6 +175,34 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     );
   }
 
+  // If no actions are available, just return the children without context menu
+  if (!hasAnyActions) {
+    return (
+      <div className="relative group">
+        {children}
+        
+        {/* Reaction Display */}
+        {message.reactions && Object.keys(message.reactions).length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {Object.entries(
+              Object.values(message.reactions).reduce((acc: any, emoji) => {
+                acc[emoji] = (acc[emoji] || 0) + 1;
+                return acc;
+              }, {})
+            ).map(([emoji, count]) => (
+              <div
+                key={emoji}
+                className="text-xs px-2 py-1 rounded-full border bg-background border-border"
+              >
+                {emoji} {String(count)}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -222,7 +254,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
                 ))}
               </div>
             </div>
-            <ContextMenuSeparator />
+            {adminSettings.featureFlags.enableMessageDeletion && <ContextMenuSeparator />}
           </>
         )}
         
@@ -240,12 +272,6 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
               </ContextMenuItem>
             )}
           </>
-        )}
-        
-        {!adminSettings.featureFlags.enableMessageReactions && !adminSettings.featureFlags.enableMessageDeletion && (
-          <div className="p-2 text-xs text-muted-foreground text-center">
-            No actions available
-          </div>
         )}
       </ContextMenuContent>
     </ContextMenu>
