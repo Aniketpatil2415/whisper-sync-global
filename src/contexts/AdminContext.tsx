@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ref, get, set, onValue, off } from 'firebase/database';
+import { ref, get, set, onValue, off, push, serverTimestamp } from 'firebase/database';
 import { database } from '@/lib/firebase';
 
 interface AdminSettings {
@@ -59,25 +59,32 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     }
   }, [user, userProfile]);
 
-  // Load admin settings
+  // Load admin settings with real-time updates
   useEffect(() => {
-    if (isAdmin) {
-      const settingsRef = ref(database, 'adminSettings');
-      
-      const handleSettingsChange = (snapshot: any) => {
-        const data = snapshot.val();
-        if (data) {
-          setAdminSettings(data);
-        }
-      };
+    const settingsRef = ref(database, 'adminSettings');
+    
+    // Initialize default settings if they don't exist
+    const initializeSettings = async () => {
+      const snapshot = await get(settingsRef);
+      if (!snapshot.exists()) {
+        await set(settingsRef, adminSettings);
+      }
+    };
 
-      onValue(settingsRef, handleSettingsChange);
+    const handleSettingsChange = (snapshot: any) => {
+      const data = snapshot.val();
+      if (data) {
+        setAdminSettings(data);
+      }
+    };
 
-      return () => {
-        off(settingsRef, 'value', handleSettingsChange);
-      };
-    }
-  }, [isAdmin]);
+    initializeSettings();
+    onValue(settingsRef, handleSettingsChange);
+
+    return () => {
+      off(settingsRef, 'value', handleSettingsChange);
+    };
+  }, []);
 
   const giveBlueTickToUser = async (userId: string) => {
     if (!isAdmin) return;
@@ -90,8 +97,17 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
       await set(userRef, {
         ...userData,
         isVerified: true,
-        verifiedAt: Date.now(),
+        verifiedAt: serverTimestamp(),
         verifiedBy: user?.uid
+      });
+      
+      // Log admin action
+      const logRef = push(ref(database, 'adminLogs'));
+      await set(logRef, {
+        action: 'BLUE_TICK_GRANTED',
+        targetUserId: userId,
+        adminId: user?.uid,
+        timestamp: serverTimestamp()
       });
     }
   };
@@ -103,12 +119,12 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     await set(userRef, null);
     
     // Log admin action
-    const logRef = ref(database, 'adminLogs');
+    const logRef = push(ref(database, 'adminLogs'));
     await set(logRef, {
       action: 'USER_REMOVED',
       targetUserId: userId,
       adminId: user?.uid,
-      timestamp: Date.now()
+      timestamp: serverTimestamp()
     });
   };
 
@@ -127,7 +143,17 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
         isDisabled: true,
         disabledUntil,
         disabledBy: user?.uid,
-        disabledAt: Date.now()
+        disabledAt: serverTimestamp()
+      });
+      
+      // Log admin action
+      const logRef = push(ref(database, 'adminLogs'));
+      await set(logRef, {
+        action: 'USER_DISABLED',
+        targetUserId: userId,
+        duration: duration,
+        adminId: user?.uid,
+        timestamp: serverTimestamp()
       });
     }
   };
@@ -145,7 +171,16 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     
     const settingsRef = ref(database, 'adminSettings');
     await set(settingsRef, newSettings);
-    setAdminSettings(newSettings);
+    
+    // Log admin action
+    const logRef = push(ref(database, 'adminLogs'));
+    await set(logRef, {
+      action: 'FEATURE_TOGGLED',
+      feature: feature,
+      enabled: newSettings.featureFlags[feature],
+      adminId: user?.uid,
+      timestamp: serverTimestamp()
+    });
   };
 
   const toggleMaintenanceMode = async () => {
@@ -158,7 +193,15 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     
     const settingsRef = ref(database, 'adminSettings');
     await set(settingsRef, newSettings);
-    setAdminSettings(newSettings);
+    
+    // Log admin action
+    const logRef = push(ref(database, 'adminLogs'));
+    await set(logRef, {
+      action: 'MAINTENANCE_MODE_TOGGLED',
+      enabled: newSettings.maintenanceMode,
+      adminId: user?.uid,
+      timestamp: serverTimestamp()
+    });
   };
 
   const removeGroup = async (groupId: string) => {
@@ -170,6 +213,15 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     // Remove all messages in the group
     const messagesRef = ref(database, `messages/${groupId}`);
     await set(messagesRef, null);
+    
+    // Log admin action
+    const logRef = push(ref(database, 'adminLogs'));
+    await set(logRef, {
+      action: 'GROUP_REMOVED',
+      targetGroupId: groupId,
+      adminId: user?.uid,
+      timestamp: serverTimestamp()
+    });
   };
 
   const deleteChat = async (chatId: string) => {
@@ -177,6 +229,15 @@ export const AdminProvider: React.FC<AdminProviderProps> = ({ children }) => {
     
     const messagesRef = ref(database, `messages/${chatId}`);
     await set(messagesRef, null);
+    
+    // Log admin action
+    const logRef = push(ref(database, 'adminLogs'));
+    await set(logRef, {
+      action: 'CHAT_DELETED',
+      targetChatId: chatId,
+      adminId: user?.uid,
+      timestamp: serverTimestamp()
+    });
   };
 
   const value: AdminContextType = {

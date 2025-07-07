@@ -68,8 +68,8 @@ export const AdminPanel: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-96">
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="text-center">
               <Shield className="h-12 w-12 mx-auto mb-4 text-red-500" />
@@ -146,54 +146,54 @@ export const AdminPanel: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background p-3 md:p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+            <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary" />
             Admin Panel
           </h1>
-          <p className="text-muted-foreground">Manage users, settings, and system features</p>
+          <p className="text-muted-foreground text-sm md:text-base">Manage users, settings, and system features</p>
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="users">User Management</TabsTrigger>
-            <TabsTrigger value="features">Feature Toggles</TabsTrigger>
-            <TabsTrigger value="system">System Settings</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsTrigger value="users" className="text-xs md:text-sm">User Management</TabsTrigger>
+            <TabsTrigger value="features" className="text-xs md:text-sm">Feature Toggles</TabsTrigger>
+            <TabsTrigger value="system" className="text-xs md:text-sm">System Settings</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users" className="space-y-6">
+          <TabsContent value="users" className="space-y-4 md:space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                  <Users className="h-4 w-4 md:h-5 md:w-5" />
                   User Management
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Manage user accounts, verification, and permissions
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <Label htmlFor="user-select">Select User</Label>
+              <CardContent className="space-y-4 md:space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                  <div className="space-y-3 md:space-y-4">
+                    <Label htmlFor="user-select" className="text-sm md:text-base">Select User</Label>
                     <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                      <SelectTrigger>
+                      <SelectTrigger className="text-sm">
                         <SelectValue placeholder="Choose a user" />
                       </SelectTrigger>
                       <SelectContent>
                         {users.map((user) => (
                           <SelectItem key={user.uid} value={user.uid}>
                             <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6">
+                              <Avatar className="h-5 w-5 md:h-6 md:w-6">
                                 <AvatarImage src={user.photoURL} />
-                                <AvatarFallback>
+                                <AvatarFallback className="text-xs">
                                   {user.displayName?.[0]?.toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
-                              {user.displayName} ({user.email})
-                              {user.isVerified && <CheckCircle className="h-4 w-4 text-blue-500" />}
+                              <span className="truncate">{user.displayName} ({user.email})</span>
+                              {user.isVerified && <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />}
                             </div>
                           </SelectItem>
                         ))}
@@ -201,8 +201,8 @@ export const AdminPanel: React.FC = () => {
                     </Select>
                   </div>
 
-                  <div className="space-y-4">
-                    <Label htmlFor="disable-duration">Disable Duration (Days)</Label>
+                  <div className="space-y-3 md:space-y-4">
+                    <Label htmlFor="disable-duration" className="text-sm md:text-base">Disable Duration (Days)</Label>
                     <Input
                       id="disable-duration"
                       type="number"
@@ -210,15 +210,16 @@ export const AdminPanel: React.FC = () => {
                       max="365"
                       value={disableDuration}
                       onChange={(e) => setDisableDuration(e.target.value)}
+                      className="text-sm"
                     />
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-col md:flex-row gap-3">
                   <Button
                     onClick={handleGiveBlueTick}
                     disabled={!selectedUserId || loading}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 text-sm"
                   >
                     <CheckCircle className="h-4 w-4" />
                     Give Blue Tick
@@ -228,7 +229,7 @@ export const AdminPanel: React.FC = () => {
                     variant="destructive"
                     onClick={handleRemoveUser}
                     disabled={!selectedUserId || loading}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 text-sm"
                   >
                     <Trash2 className="h-4 w-4" />
                     Remove User
@@ -238,44 +239,44 @@ export const AdminPanel: React.FC = () => {
                     variant="outline"
                     onClick={handleDisableUser}
                     disabled={!selectedUserId || loading}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 text-sm"
                   >
                     <Ban className="h-4 w-4" />
                     Disable User
                   </Button>
                 </div>
 
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4">All Users</h3>
-                  <div className="grid gap-3">
+                <div className="mt-4 md:mt-6">
+                  <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">All Users</h3>
+                  <div className="grid gap-2 md:gap-3 max-h-96 overflow-y-auto">
                     {users.map((user) => (
                       <div
                         key={user.uid}
-                        className="flex items-center justify-between p-4 border rounded-lg"
+                        className="flex items-center justify-between p-3 md:p-4 border rounded-lg"
                       >
-                        <div className="flex items-center gap-3">
-                          <Avatar>
+                        <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                          <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
                             <AvatarImage src={user.photoURL} />
-                            <AvatarFallback>
+                            <AvatarFallback className="text-xs md:text-sm">
                               {user.displayName?.[0]?.toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{user.displayName}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1 md:gap-2">
+                              <span className="font-medium text-sm md:text-base truncate">{user.displayName}</span>
                               {user.isVerified && (
-                                <CheckCircle className="h-4 w-4 text-blue-500" />
+                                <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-blue-500 flex-shrink-0" />
                               )}
                             </div>
-                            <p className="text-sm text-muted-foreground">{user.email}</p>
+                            <p className="text-xs md:text-sm text-muted-foreground truncate">{user.email}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={user.isOnline ? "default" : "secondary"}>
+                        <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+                          <Badge variant={user.isOnline ? "default" : "secondary"} className="text-xs">
                             {user.isOnline ? "Online" : "Offline"}
                           </Badge>
                           {user.isDisabled && (
-                            <Badge variant="destructive">Disabled</Badge>
+                            <Badge variant="destructive" className="text-xs">Disabled</Badge>
                           )}
                         </div>
                       </div>
@@ -286,23 +287,23 @@ export const AdminPanel: React.FC = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="features" className="space-y-6">
+          <TabsContent value="features" className="space-y-4 md:space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
+                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                  <Settings className="h-4 w-4 md:h-5 md:w-5" />
                   Feature Toggles
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-sm">
                   Enable or disable app features for all users
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 md:space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Group Chat</Label>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between p-3 md:p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <Label className="text-sm md:text-base">Group Chat</Label>
+                      <p className="text-xs md:text-sm text-muted-foreground">
                         Allow users to create and join group chats
                       </p>
                     </div>
@@ -312,10 +313,10 @@ export const AdminPanel: React.FC = () => {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>File Sharing</Label>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between p-3 md:p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <Label className="text-sm md:text-base">File Sharing</Label>
+                      <p className="text-xs md:text-sm text-muted-foreground">
                         Allow users to share files and images
                       </p>
                     </div>
@@ -325,10 +326,10 @@ export const AdminPanel: React.FC = () => {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Voice Messages</Label>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between p-3 md:p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <Label className="text-sm md:text-base">Voice Messages</Label>
+                      <p className="text-xs md:text-sm text-muted-foreground">
                         Allow users to send voice messages
                       </p>
                     </div>
@@ -342,21 +343,26 @@ export const AdminPanel: React.FC = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="system" className="space-y-6">
+          <TabsContent value="system" className="space-y-4 md:space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>System Settings</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-lg md:text-xl">System Settings</CardTitle>
+                <CardDescription className="text-sm">
                   Manage system-wide settings and maintenance
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Maintenance Mode</Label>
-                    <p className="text-sm text-muted-foreground">
+              <CardContent className="space-y-4 md:space-y-6">
+                <div className="flex items-center justify-between p-3 md:p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <Label className="text-sm md:text-base">Maintenance Mode</Label>
+                    <p className="text-xs md:text-sm text-muted-foreground">
                       Put the app in maintenance mode to prevent user access
                     </p>
+                    {adminSettings.maintenanceMode && (
+                      <Badge variant="destructive" className="mt-2 text-xs">
+                        Currently Active
+                      </Badge>
+                    )}
                   </div>
                   <Switch
                     checked={adminSettings.maintenanceMode}

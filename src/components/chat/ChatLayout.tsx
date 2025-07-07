@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -20,16 +21,19 @@ export const ChatLayout = () => {
   const [showProfile, setShowProfile] = useState(!userProfile?.displayName);
   const [showGroupModal, setShowGroupModal] = useState(false);
 
-  // Check maintenance mode
+  // Check maintenance mode - block ALL non-admin users
   if (adminSettings.maintenanceMode && !isAdmin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="w-32 h-32 mx-auto mb-4 rounded-full bg-yellow-100 flex items-center justify-center">
-            <Shield className="w-16 h-16 text-yellow-600" />
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="text-center max-w-md">
+          <div className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-4 rounded-full bg-yellow-100 flex items-center justify-center">
+            <Shield className="w-12 h-12 md:w-16 md:h-16 text-yellow-600" />
           </div>
-          <h2 className="text-2xl font-semibold mb-2">Maintenance Mode</h2>
-          <p className="text-muted-foreground">The app is currently under maintenance. Please try again later.</p>
+          <h2 className="text-xl md:text-2xl font-semibold mb-2">Maintenance Mode</h2>
+          <p className="text-muted-foreground mb-4">The app is currently under maintenance. Please try again later.</p>
+          <Button onClick={logout} variant="outline">
+            Logout
+          </Button>
         </div>
       </div>
     );
@@ -45,27 +49,30 @@ export const ChatLayout = () => {
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      {/* Sidebar */}
-      <div className="w-80 bg-card border-r border-border flex flex-col">
-        <div className="p-4 border-b border-border">
+      {/* Sidebar - Hidden on mobile when chat is selected */}
+      <div className={`
+        w-full md:w-80 bg-card border-r border-border flex flex-col
+        ${selectedChat ? 'hidden md:flex' : 'flex'}
+      `}>
+        <div className="p-3 md:p-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10">
+            <div className="flex items-center space-x-2 md:space-x-3 min-w-0">
+              <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
                 <AvatarImage src={userProfile?.photoURL} />
-                <AvatarFallback className="bg-primary text-primary-foreground">
+                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
                   {userProfile?.displayName?.[0]?.toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-foreground">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1 md:gap-2">
+                  <h2 className="font-semibold text-foreground truncate text-sm md:text-base">
                     {userProfile?.displayName}
                   </h2>
                   {userProfile?.isVerified && (
-                    <CheckCircle className="h-4 w-4 text-blue-500" />
+                    <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-blue-500 flex-shrink-0" />
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {userProfile?.isOnline ? 'Online' : 'Offline'}
                 </p>
               </div>
@@ -76,24 +83,24 @@ export const ChatLayout = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => window.open('/admin', '_blank')}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground p-1 md:p-2"
                 >
-                  <Shield className="h-4 w-4" />
+                  <Shield className="h-3 w-3 md:h-4 md:w-4" />
                 </Button>
               )}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleTheme}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground p-1 md:p-2"
               >
-                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {isDark ? <Sun className="h-3 w-3 md:h-4 md:w-4" /> : <Moon className="h-3 w-3 md:h-4 md:w-4" />}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowProfile(true)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground p-1 md:p-2 hidden md:inline-flex"
               >
                 Profile
               </Button>
@@ -101,7 +108,7 @@ export const ChatLayout = () => {
                 variant="ghost"
                 size="sm"
                 onClick={logout}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground p-1 md:p-2"
               >
                 Logout
               </Button>
@@ -115,19 +122,21 @@ export const ChatLayout = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowGroupModal(true)}
-                className="flex items-center space-x-2 flex-1"
+                className="flex items-center space-x-1 md:space-x-2 flex-1 text-xs md:text-sm"
               >
-                <Users className="h-4 w-4" />
-                <span>New Group</span>
+                <Users className="h-3 w-3 md:h-4 md:w-4" />
+                <span className="hidden md:inline">New Group</span>
+                <span className="md:hidden">Group</span>
               </Button>
             )}
             <Button
               variant="outline"
               size="sm"
-              className="flex items-center space-x-2 flex-1"
+              className="flex items-center space-x-1 md:space-x-2 flex-1 text-xs md:text-sm"
             >
-              <Plus className="h-4 w-4" />
-              <span>New Chat</span>
+              <Plus className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden md:inline">New Chat</span>
+              <span className="md:hidden">Chat</span>
             </Button>
           </div>
         </div>
@@ -140,15 +149,18 @@ export const ChatLayout = () => {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className={`
+        flex-1 flex flex-col
+        ${selectedChat ? 'flex' : 'hidden md:flex'}
+      `}>
         {selectedChat ? (
-          <ChatWindow chatId={selectedChat} />
+          <ChatWindow chatId={selectedChat} onBack={() => setSelectedChat(null)} />
         ) : (
-          <div className="flex-1 flex items-center justify-center bg-background">
-            <div className="text-center">
-              <div className="w-32 h-32 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center bg-background p-4">
+            <div className="text-center max-w-md">
+              <div className="w-24 h-24 md:w-32 md:h-32 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
                 <svg
-                  className="w-16 h-16 text-primary"
+                  className="w-12 h-12 md:w-16 md:h-16 text-primary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -161,10 +173,10 @@ export const ChatLayout = () => {
                   />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">
+              <h3 className="text-lg md:text-xl font-semibold text-foreground mb-2">
                 {config.welcomeMessage}
               </h3>
-              <p className="text-muted-foreground">
+              <p className="text-sm md:text-base text-muted-foreground">
                 Select a chat to start messaging
               </p>
             </div>
