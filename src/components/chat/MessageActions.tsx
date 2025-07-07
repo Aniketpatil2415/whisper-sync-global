@@ -112,11 +112,11 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
     if (!user || !canDeleteForEveryone || !adminSettings.featureFlags.enableMessageDeletion) return;
 
     const messagePath = isGroup 
-      ? `groups/${chatId}/messages/${message.id}/deletedForEveryone`
-      : `chats/${chatId}/messages/${message.id}/deletedForEveryone`;
+      ? `groups/${chatId}/messages/${message.id}`
+      : `chats/${chatId}/messages/${message.id}`;
 
     try {
-      await update(ref(database, messagePath), true);
+      await update(ref(database, messagePath), { deletedForEveryone: true });
       
       toast({
         title: "Message deleted",
@@ -164,7 +164,7 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
                       : 'bg-background hover:bg-accent'
                   }`}
                 >
-                  {emoji} {count}
+                  {emoji} {String(count)}
                 </button>
               ))}
             </div>
