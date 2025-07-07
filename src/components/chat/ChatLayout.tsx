@@ -1,23 +1,39 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useRemoteConfig } from '@/hooks/useRemoteConfig';
+import { useAdmin } from '@/contexts/AdminContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatWindow } from './ChatWindow';
 import { ProfileSetup } from './ProfileSetup';
 import { GroupChatModal } from './GroupChatModal';
-import { Moon, Sun, Users, Plus } from 'lucide-react';
+import { Moon, Sun, Users, Plus, Shield, CheckCircle } from 'lucide-react';
 
 export const ChatLayout = () => {
   const { user, userProfile, logout } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const { config } = useRemoteConfig();
+  const { isAdmin, adminSettings } = useAdmin();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(!userProfile?.displayName);
   const [showGroupModal, setShowGroupModal] = useState(false);
+
+  // Check maintenance mode
+  if (adminSettings.maintenanceMode && !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-32 h-32 mx-auto mb-4 rounded-full bg-yellow-100 flex items-center justify-center">
+            <Shield className="w-16 h-16 text-yellow-600" />
+          </div>
+          <h2 className="text-2xl font-semibold mb-2">Maintenance Mode</h2>
+          <p className="text-muted-foreground">The app is currently under maintenance. Please try again later.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (showProfile || !userProfile?.displayName) {
     return <ProfileSetup onComplete={() => setShowProfile(false)} />;
@@ -31,7 +47,6 @@ export const ChatLayout = () => {
     <div className="flex h-screen bg-background text-foreground">
       {/* Sidebar */}
       <div className="w-80 bg-card border-r border-border flex flex-col">
-        {/* Header */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
@@ -42,15 +57,30 @@ export const ChatLayout = () => {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h2 className="font-semibold text-foreground">
-                  {userProfile?.displayName}
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-semibold text-foreground">
+                    {userProfile?.displayName}
+                  </h2>
+                  {userProfile?.isVerified && (
+                    <CheckCircle className="h-4 w-4 text-blue-500" />
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">
                   {userProfile?.isOnline ? 'Online' : 'Offline'}
                 </p>
               </div>
             </div>
             <div className="flex space-x-1">
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => window.open('/admin', '_blank')}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Shield className="h-4 w-4" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -80,7 +110,7 @@ export const ChatLayout = () => {
           
           {/* Action Buttons */}
           <div className="flex space-x-2">
-            {config.enableGroupChat && (
+            {(config.enableGroupChat && adminSettings.featureFlags.enableGroupChat) && (
               <Button
                 variant="outline"
                 size="sm"

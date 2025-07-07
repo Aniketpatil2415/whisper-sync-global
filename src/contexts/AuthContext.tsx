@@ -17,6 +17,9 @@ interface UserProfile {
   photoURL?: string;
   lastSeen: any;
   isOnline: boolean;
+  isVerified?: boolean;
+  isDisabled?: boolean;
+  disabledUntil?: number;
 }
 
 interface AuthContextType {
@@ -53,21 +56,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(user);
       
       if (user) {
-        // Set user online status
+        // Check if user is disabled
         const userRef = ref(database, `users/${user.uid}`);
+        const snapshot = await get(userRef);
+        
+        if (snapshot.exists()) {
+          const userData = snapshot.val();
+          
+          // Check if user is currently disabled
+          if (userData.isDisabled && userData.disabledUntil && userData.disabledUntil > Date.now()) {
+            // User is still disabled, log them out
+            await signOut(auth);
+            return;
+          } else if (userData.isDisabled && userData.disabledUntil && userData.disabledUntil <= Date.now()) {
+            // Disable period has expired, re-enable user
+            await set(userRef, {
+              ...userData,
+              isDisabled: false,
+              disabledUntil: null
+            });
+          }
+        }
+
+        // Set user online status
         await set(userRef, {
           uid: user.uid,
           email: user.email,
           displayName: user.displayName || 'User',
           photoURL: user.photoURL || '',
           lastSeen: serverTimestamp(),
-          isOnline: true
+          isOnline: true,
+          isVerified: snapshot.exists() ? snapshot.val().isVerified || false : false
         });
 
         // Get user profile
-        const snapshot = await get(userRef);
-        if (snapshot.exists()) {
-          setUserProfile(snapshot.val());
+        const updatedSnapshot = await get(userRef);
+        if (updatedSnapshot.exists()) {
+          setUserProfile(updatedSnapshot.val());
         }
 
         // Set offline when user disconnects
