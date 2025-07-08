@@ -11,6 +11,9 @@ import { ChatWindow } from './ChatWindow';
 import { ProfileSetup } from './ProfileSetup';
 import { GroupChatModal } from './GroupChatModal';
 import { AdminSetup } from '@/components/admin/AdminSetup';
+import { MobileSwipeGestures } from '@/components/mobile/MobileSwipeGestures';
+import { MobileFeatures, useMobileFeatures } from '@/components/mobile/MobileFeatures';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Moon, Sun, Users, Plus, Shield, CheckCircle, Settings } from 'lucide-react';
 
 export const ChatLayout = () => {
@@ -18,6 +21,8 @@ export const ChatLayout = () => {
   const { isDark, toggleTheme } = useTheme();
   const { config } = useRemoteConfig();
   const { isAdmin, adminSettings } = useAdmin();
+  const { vibrate, isMobile } = useMobileFeatures();
+  const isMobileDevice = useIsMobile();
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(!userProfile?.displayName);
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -60,13 +65,26 @@ export const ChatLayout = () => {
 
   const handleGroupCreated = (groupId: string) => {
     setSelectedChat(groupId);
+    vibrate([50, 100, 50]); // Success vibration
+  };
+
+  const handleChatSelect = (chatId: string) => {
+    setSelectedChat(chatId);
+    vibrate(50); // Light feedback
+  };
+
+  const handleSwipeRight = () => {
+    if (selectedChat && isMobileDevice) {
+      setSelectedChat(null); // Go back to chat list
+      vibrate(30);
+    }
   };
 
   return (
-    <div className="flex h-screen bg-background text-foreground">
+    <div className="flex h-screen bg-background text-foreground mobile-safe-area">
       {/* Sidebar - Hidden on mobile when chat is selected */}
       <div className={`
-        w-full md:w-80 bg-card border-r border-border flex flex-col
+        w-full md:w-80 bg-card border-r border-border flex flex-col mobile-scroll
         ${selectedChat ? 'hidden md:flex' : 'flex'}
       `}>
         <div className="p-3 md:p-4 border-b border-border">
@@ -147,8 +165,11 @@ export const ChatLayout = () => {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowGroupModal(true)}
-                className="flex items-center space-x-1 md:space-x-2 flex-1 text-xs md:text-sm"
+                onClick={() => {
+                  setShowGroupModal(true);
+                  vibrate(50);
+                }}
+                className="flex items-center space-x-1 md:space-x-2 flex-1 text-xs md:text-sm touch-target"
               >
                 <Users className="h-3 w-3 md:h-4 md:w-4" />
                 <span className="hidden md:inline">New Group</span>
@@ -158,29 +179,43 @@ export const ChatLayout = () => {
             <Button
               variant="outline"
               size="sm"
-              className="flex items-center space-x-1 md:space-x-2 flex-1 text-xs md:text-sm"
+              className="flex items-center space-x-1 md:space-x-2 flex-1 text-xs md:text-sm touch-target"
+              onClick={() => vibrate(50)}
             >
               <Plus className="h-3 w-3 md:h-4 md:w-4" />
               <span className="hidden md:inline">New Chat</span>
               <span className="md:hidden">Chat</span>
             </Button>
           </div>
+          
+          {/* Mobile Features */}
+          {isMobileDevice && (
+            <div className="mt-3 pt-3 border-t border-border">
+              <MobileFeatures />
+            </div>
+          )}
         </div>
 
         {/* Chat List */}
         <ChatSidebar 
           selectedChat={selectedChat}
-          onSelectChat={setSelectedChat}
+          onSelectChat={handleChatSelect}
         />
       </div>
 
       {/* Main Chat Area */}
-      <div className={`
-        flex-1 flex flex-col
-        ${selectedChat ? 'flex' : 'hidden md:flex'}
-      `}>
+      <MobileSwipeGestures
+        onSwipeRight={handleSwipeRight}
+        className={`
+          flex-1 flex flex-col mobile-scroll
+          ${selectedChat ? 'flex' : 'hidden md:flex'}
+        `}
+      >
         {selectedChat ? (
-          <ChatWindow chatId={selectedChat} onBack={() => setSelectedChat(null)} />
+          <ChatWindow chatId={selectedChat} onBack={() => {
+            setSelectedChat(null);
+            vibrate(30);
+          }} />
         ) : (
           <div className="flex-1 flex items-center justify-center bg-background p-4">
             <div className="text-center max-w-md">
@@ -208,7 +243,7 @@ export const ChatLayout = () => {
             </div>
           </div>
         )}
-      </div>
+      </MobileSwipeGestures>
 
       {/* Group Chat Modal */}
       <GroupChatModal

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { AdminRequestPanel } from './AdminRequestPanel';
 import { ref, onValue, off } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -14,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Users, Settings, Trash2, Ban, CheckCircle } from 'lucide-react';
+import { Shield, Users, Settings, Trash2, Ban, CheckCircle, UserCheck } from 'lucide-react';
 
 interface User {
   uid: string;
@@ -157,10 +158,11 @@ export const AdminPanel: React.FC = () => {
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
-            <TabsTrigger value="users" className="text-xs md:text-sm">User Management</TabsTrigger>
-            <TabsTrigger value="features" className="text-xs md:text-sm">Feature Toggles</TabsTrigger>
-            <TabsTrigger value="system" className="text-xs md:text-sm">System Settings</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
+            <TabsTrigger value="requests" className="text-xs md:text-sm">Requests</TabsTrigger>
+            <TabsTrigger value="features" className="text-xs md:text-sm">Features</TabsTrigger>
+            <TabsTrigger value="system" className="text-xs md:text-sm">System</TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-4 md:space-y-6">
@@ -285,6 +287,10 @@ export const AdminPanel: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="requests" className="space-y-4 md:space-y-6">
+            <AdminRequestPanel />
           </TabsContent>
 
           <TabsContent value="features" className="space-y-4 md:space-y-6">
