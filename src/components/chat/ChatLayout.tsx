@@ -10,7 +10,8 @@ import { ChatSidebar } from './ChatSidebar';
 import { ChatWindow } from './ChatWindow';
 import { ProfileSetup } from './ProfileSetup';
 import { GroupChatModal } from './GroupChatModal';
-import { Moon, Sun, Users, Plus, Shield, CheckCircle } from 'lucide-react';
+import { AdminSetup } from '@/components/admin/AdminSetup';
+import { Moon, Sun, Users, Plus, Shield, CheckCircle, Settings } from 'lucide-react';
 
 export const ChatLayout = () => {
   const { user, userProfile, logout } = useAuth();
@@ -20,6 +21,7 @@ export const ChatLayout = () => {
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(!userProfile?.displayName);
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showAdminSetup, setShowAdminSetup] = useState(false);
 
   // Check maintenance mode - block ALL non-admin users
   if (adminSettings.maintenanceMode && !isAdmin) {
@@ -41,6 +43,19 @@ export const ChatLayout = () => {
 
   if (showProfile || !userProfile?.displayName) {
     return <ProfileSetup onComplete={() => setShowProfile(false)} />;
+  }
+
+  if (showAdminSetup) {
+    return (
+      <div className="min-h-screen bg-background p-4">
+        <AdminSetup />
+        <div className="text-center mt-4">
+          <Button variant="outline" onClick={() => setShowAdminSetup(false)}>
+            Back to Chat
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const handleGroupCreated = (groupId: string) => {
@@ -86,6 +101,17 @@ export const ChatLayout = () => {
                   className="text-muted-foreground hover:text-foreground p-1 md:p-2"
                 >
                   <Shield className="h-3 w-3 md:h-4 md:w-4" />
+                </Button>
+              )}
+              {!isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAdminSetup(true)}
+                  className="text-muted-foreground hover:text-foreground p-1 md:p-2"
+                  title="Setup Admin Access"
+                >
+                  <Settings className="h-3 w-3 md:h-4 md:w-4" />
                 </Button>
               )}
               <Button
