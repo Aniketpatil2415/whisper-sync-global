@@ -72,9 +72,18 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
           ...group
         })) as Group[];
         // Filter groups where current user is a member
-        const userGroups = groupsList.filter(group => 
-          group.members && group.members.includes(user.uid)
-        );
+        const userGroups = groupsList.filter(group => {
+          // Ensure members exists and is an array before using includes
+          if (!group.members) return false;
+          if (Array.isArray(group.members)) {
+            return group.members.includes(user.uid);
+          }
+          // If members is an object (Firebase sometimes stores as object)
+          if (typeof group.members === 'object') {
+            return Object.values(group.members).includes(user.uid);
+          }
+          return false;
+        });
         setGroups(userGroups);
       }
     };
@@ -177,7 +186,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             </Badge>
                           </div>
                           <p className="text-xs md:text-sm text-muted-foreground truncate">
-                            {group.members.length} members
+                            {Array.isArray(group.members) ? group.members.length : Object.keys(group.members || {}).length} members
                           </p>
                         </div>
                       </div>
