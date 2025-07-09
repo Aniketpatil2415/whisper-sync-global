@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdmin } from '@/contexts/AdminContext';
-import { ref, update, remove } from 'firebase/database';
+import { ref, update, remove, push } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { 
@@ -82,6 +82,24 @@ export const MessageActions: React.FC<MessageActionsProps> = ({
       }
 
       await update(ref(database, messagePath), updates);
+
+      // Send reaction notification to other users in chat
+      if (!isGroup) {
+        const otherUserId = chatId.split('_').find(id => id !== user.uid);
+        if (otherUserId) {
+          const notificationRef = ref(database, `notifications/${otherUserId}`);
+          await push(notificationRef, {
+            type: 'reaction',
+            from: user.uid,
+            fromName: user.displayName || 'Unknown User',
+            chatId,
+            messageId: message.id,
+            emoji,
+            timestamp: Date.now(),
+            action: currentReaction === emoji ? 'removed' : 'added'
+          });
+        }
+      }
       
       toast({
         title: currentReaction === emoji ? "Reaction removed" : "Reaction added",

@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { ref, onValue, off } from 'firebase/database';
+import { ref, onValue, off, push, get } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Clock } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface User {
   uid: string;
@@ -17,6 +18,22 @@ interface User {
   isOnline: boolean;
   lastSeen: any;
   isVerified?: boolean;
+}
+
+interface ChatItem {
+  id: string;
+  type: 'user' | 'group';
+  user?: User;
+  group?: Group;
+  lastActivity: number;
+  lastMessage?: {
+    text: string;
+    timestamp: number;
+    sender: string;
+    senderName: string;
+  };
+  hasUnread?: boolean;
+  isPendingRequest?: boolean;
 }
 
 interface Group {
@@ -41,17 +58,22 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   selectedChat,
   onSelectChat
 }) => {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [chatItems, setChatItems] = useState<ChatItem[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<string[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!user) return;
 
     const usersRef = ref(database, 'users');
     const groupsRef = ref(database, 'groups');
+    const chatsRef = ref(database, 'chats');
+    const requestsRef = ref(database, `chatRequests/${user.uid}`);
     
     const handleUsersChange = (snapshot: any) => {
       const data = snapshot.val();
@@ -88,29 +110,102 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       }
     };
 
+    const handleRequestsChange = (snapshot: any) => {
+      const data = snapshot.val();
+      if (data) {
+        const requests = Object.keys(data).filter(chatId => data[chatId].status === 'pending');
+        setPendingRequests(requests);
+      } else {
+        setPendingRequests([]);
+      }
+    };
+
     onValue(usersRef, handleUsersChange);
     onValue(groupsRef, handleGroupsChange);
+    onValue(requestsRef, handleRequestsChange);
 
     return () => {
       off(usersRef, 'value', handleUsersChange);
       off(groupsRef, 'value', handleGroupsChange);
+      off(requestsRef, 'value', handleRequestsChange);
     };
   }, [user]);
 
-  const filteredUsers = users.filter(user =>
-    user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Create combined chat items with last activity
+  useEffect(() => {
+    if (!user) return;
 
-  const filteredGroups = groups.filter(group =>
-    group.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    const items: ChatItem[] = [];
 
-  const handleStartChat = (otherUser: User) => {
+    // Add users with chat activity
+    users.forEach(otherUser => {
+      const chatId = [user.uid, otherUser.uid].sort().join('_');
+      items.push({
+        id: chatId,
+        type: 'user',
+        user: otherUser,
+        lastActivity: otherUser.lastSeen || 0,
+        isPendingRequest: pendingRequests.includes(chatId)
+      });
+    });
+
+    // Add groups
+    groups.forEach(group => {
+      items.push({
+        id: group.id,
+        type: 'group',
+        group,
+        lastActivity: group.lastMessage?.timestamp || group.createdAt || 0
+      });
+    });
+
+    // Sort by last activity (most recent first)
+    items.sort((a, b) => (b.lastActivity || 0) - (a.lastActivity || 0));
+
+    setChatItems(items);
+  }, [users, groups, user, pendingRequests]);
+
+  const filteredChatItems = chatItems.filter(item => {
+    if (item.type === 'user' && item.user) {
+      return item.user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+             item.user.email.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    if (item.type === 'group' && item.group) {
+      return item.group.name.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    return false;
+  });
+
+  const handleStartChat = async (otherUser: User) => {
     if (!user) return;
     
-    // Create chat ID by sorting user IDs to ensure consistency
     const chatId = [user.uid, otherUser.uid].sort().join('_');
+    
+    // Check if the other user is verified and this is first contact
+    if (otherUser.isVerified && !userProfile?.isVerified) {
+      // Check if there are existing messages
+      const chatRef = ref(database, `chats/${chatId}/messages`);
+      const chatSnapshot = await get(chatRef);
+      
+      if (!chatSnapshot.exists()) {
+        // Send chat request
+        const requestRef = ref(database, `chatRequests/${otherUser.uid}/${chatId}`);
+        await push(requestRef, {
+          from: user.uid,
+          fromName: user.displayName || 'Unknown User',
+          fromAvatar: user.photoURL || '',
+          status: 'pending',
+          timestamp: Date.now()
+        });
+        
+        toast({
+          title: "Chat request sent",
+          description: `Your chat request has been sent to ${otherUser.displayName}`
+        });
+        return;
+      }
+    }
+    
     onSelectChat(chatId);
   };
 
@@ -147,18 +242,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             Loading chats...
           </div>
         ) : (
-          <>
-            {/* Groups Section */}
-            {filteredGroups.length > 0 && (
-              <div className="px-2 md:px-3 mb-4">
-                <h3 className="text-sm font-medium text-muted-foreground mb-2 px-2">Groups</h3>
-                <div className="space-y-1">
-                  {filteredGroups.map((group) => {
-                    const isSelected = selectedChat === group.id;
-                    
+          <div className="px-2 md:px-3">
+            {filteredChatItems.length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground">
+                {searchQuery ? 'No chats found' : 'No chats available'}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {filteredChatItems.map((item) => {
+                  if (item.type === 'group' && item.group) {
+                    const isSelected = selectedChat === item.id;
                     return (
                       <div
-                        key={group.id}
+                        key={item.id}
                         className={`
                           flex items-center space-x-3 p-2 md:p-3 rounded-lg cursor-pointer transition-colors
                           ${isSelected 
@@ -166,12 +262,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             : 'hover:bg-secondary/50'
                           }
                         `}
-                        onClick={() => onSelectChat(group.id)}
+                        onClick={() => onSelectChat(item.id)}
                       >
                         <div className="relative">
                           <Avatar className="h-10 w-10 md:h-12 md:w-12">
                             <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                              {group.name[0]?.toUpperCase()}
+                              {item.group.name[0]?.toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                         </div>
@@ -179,91 +275,92 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <h3 className="font-medium text-foreground truncate text-sm md:text-base">
-                              {group.name}
+                              {item.group.name}
                             </h3>
                             <Badge variant="secondary" className="text-xs">
                               Group
                             </Badge>
                           </div>
                           <p className="text-xs md:text-sm text-muted-foreground truncate">
-                            {Array.isArray(group.members) ? group.members.length : Object.keys(group.members || {}).length} members
+                            {Array.isArray(item.group.members) ? item.group.members.length : Object.keys(item.group.members || {}).length} members
                           </p>
                         </div>
                       </div>
                     );
-                  })}
-                </div>
-              </div>
-            )}
+                  }
 
-            {/* Users Section */}
-            {filteredUsers.length === 0 && filteredGroups.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">
-                {searchQuery ? 'No chats found' : 'No chats available'}
-              </div>
-            ) : (
-              <div className="px-2 md:px-3">
-                {filteredUsers.length > 0 && (
-                  <>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-2 px-2">Direct Messages</h3>
-                    <div className="space-y-1">
-                      {filteredUsers.map((otherUser) => {
-                        const chatId = user ? [user.uid, otherUser.uid].sort().join('_') : '';
-                        const isSelected = selectedChat === chatId;
+                  if (item.type === 'user' && item.user) {
+                    const isSelected = selectedChat === item.id;
+                    const isPending = item.isPendingRequest;
+                    
+                    return (
+                      <div
+                        key={item.id}
+                        className={`
+                          flex items-center space-x-3 p-2 md:p-3 rounded-lg cursor-pointer transition-colors
+                          ${isSelected 
+                            ? 'bg-primary/20 border border-primary/30' 
+                            : 'hover:bg-secondary/50'
+                          }
+                          ${isPending ? 'opacity-60' : ''}
+                        `}
+                        onClick={() => handleStartChat(item.user!)}
+                      >
+                        <div className="relative">
+                          <Avatar className="h-10 w-10 md:h-12 md:w-12">
+                            <AvatarImage src={item.user.photoURL} />
+                            <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                              {item.user.displayName[0]?.toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          {item.user.isOnline && !isPending && (
+                            <div className="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-status-online rounded-full border-2 border-chat-sidebar"></div>
+                          )}
+                          {isPending && (
+                            <div className="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-orange-500 rounded-full border-2 border-chat-sidebar flex items-center justify-center">
+                              <Clock className="h-2 w-2 text-white" />
+                            </div>
+                          )}
+                        </div>
                         
-                        return (
-                          <div
-                            key={otherUser.uid}
-                            className={`
-                              flex items-center space-x-3 p-2 md:p-3 rounded-lg cursor-pointer transition-colors
-                              ${isSelected 
-                                ? 'bg-primary/20 border border-primary/30' 
-                                : 'hover:bg-secondary/50'
-                              }
-                            `}
-                            onClick={() => handleStartChat(otherUser)}
-                          >
-                            <div className="relative">
-                              <Avatar className="h-10 w-10 md:h-12 md:w-12">
-                                <AvatarImage src={otherUser.photoURL} />
-                                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                                  {otherUser.displayName[0]?.toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              {otherUser.isOnline && (
-                                <div className="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-status-online rounded-full border-2 border-chat-sidebar"></div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium text-foreground truncate text-sm md:text-base">
+                                {item.user.displayName}
+                              </h3>
+                              {item.user.isVerified && (
+                                <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-blue-500 flex-shrink-0" />
                               )}
                             </div>
-                            
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <h3 className="font-medium text-foreground truncate text-sm md:text-base">
-                                    {otherUser.displayName}
-                                  </h3>
-                                  {otherUser.isVerified && (
-                                    <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-blue-500 flex-shrink-0" />
-                                  )}
-                                </div>
-                                {otherUser.isOnline && (
-                                  <Badge variant="secondary" className="text-xs bg-status-online/20 text-status-online">
-                                    Online
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-xs md:text-sm text-muted-foreground truncate">
-                                {otherUser.isOnline ? 'Online' : `Last seen ${formatLastSeen(otherUser.lastSeen)}`}
-                              </p>
-                            </div>
+                            {isPending ? (
+                              <Badge variant="secondary" className="text-xs bg-orange-500/20 text-orange-500">
+                                Pending
+                              </Badge>
+                            ) : item.user.isOnline ? (
+                              <Badge variant="secondary" className="text-xs bg-status-online/20 text-status-online">
+                                Online
+                              </Badge>
+                            ) : null}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
+                          <p className="text-xs md:text-sm text-muted-foreground truncate">
+                            {isPending 
+                              ? 'Chat request pending...'
+                              : item.user.isOnline 
+                                ? 'Online' 
+                                : `Last seen ${formatLastSeen(item.user.lastSeen)}`
+                            }
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })}
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>

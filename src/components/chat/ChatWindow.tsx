@@ -147,6 +147,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, onBack }) => {
         timestamp: serverTimestamp(),
         status: 'sent'
       });
+
+      // Update last activity for chat ordering
+      if (!isGroup) {
+        const otherUserId = chatId.split('_').find(id => id !== user.uid);
+        if (otherUserId) {
+          const chatActivityRef = ref(database, `chatActivity/${chatId}`);
+          await update(chatActivityRef, {
+            lastMessage: {
+              text: newMessage.trim(),
+              timestamp: Date.now(),
+              sender: user.uid,
+              senderName: userProfile.displayName
+            },
+            lastActivity: Date.now()
+          });
+        }
+      }
       
       setNewMessage('');
       handleStopTyping();

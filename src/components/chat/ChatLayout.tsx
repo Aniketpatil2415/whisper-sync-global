@@ -13,8 +13,9 @@ import { GroupChatModal } from './GroupChatModal';
 import { AdminSetup } from '@/components/admin/AdminSetup';
 import { MobileSwipeGestures } from '@/components/mobile/MobileSwipeGestures';
 import { MobileFeatures, useMobileFeatures } from '@/components/mobile/MobileFeatures';
+import { ChatRequestHandler } from './ChatRequestHandler';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Moon, Sun, Users, Plus, Shield, CheckCircle, Settings } from 'lucide-react';
+import { Moon, Sun, Users, Plus, Shield, CheckCircle, Settings, MessageSquare } from 'lucide-react';
 
 export const ChatLayout = () => {
   const { user, userProfile, logout } = useAuth();
@@ -27,6 +28,7 @@ export const ChatLayout = () => {
   const [showProfile, setShowProfile] = useState(!userProfile?.displayName);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showAdminSetup, setShowAdminSetup] = useState(false);
+  const [showChatRequests, setShowChatRequests] = useState(false);
 
   // Check maintenance mode - block ALL non-admin users
   if (adminSettings.maintenanceMode && !isAdmin) {
@@ -70,7 +72,14 @@ export const ChatLayout = () => {
 
   const handleChatSelect = (chatId: string) => {
     setSelectedChat(chatId);
+    setShowChatRequests(false);
     vibrate(50); // Light feedback
+  };
+
+  const handleRequestAccepted = (chatId: string) => {
+    setSelectedChat(chatId);
+    setShowChatRequests(false);
+    vibrate([50, 100, 50]); // Success vibration
   };
 
   const handleSwipeRight = () => {
@@ -161,6 +170,19 @@ export const ChatLayout = () => {
           
           {/* Action Buttons */}
           <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setShowChatRequests(!showChatRequests);
+                vibrate(50);
+              }}
+              className="flex items-center space-x-1 md:space-x-2 flex-1 text-xs md:text-sm touch-target"
+            >
+              <MessageSquare className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden md:inline">Requests</span>
+              <span className="md:hidden">Req</span>
+            </Button>
             {(config.enableGroupChat && adminSettings.featureFlags.enableGroupChat) && (
               <Button
                 variant="outline"
@@ -176,16 +198,6 @@ export const ChatLayout = () => {
                 <span className="md:hidden">Group</span>
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center space-x-1 md:space-x-2 flex-1 text-xs md:text-sm touch-target"
-              onClick={() => vibrate(50)}
-            >
-              <Plus className="h-3 w-3 md:h-4 md:w-4" />
-              <span className="hidden md:inline">New Chat</span>
-              <span className="md:hidden">Chat</span>
-            </Button>
           </div>
           
           {/* Mobile Features */}
@@ -197,10 +209,14 @@ export const ChatLayout = () => {
         </div>
 
         {/* Chat List */}
-        <ChatSidebar 
-          selectedChat={selectedChat}
-          onSelectChat={handleChatSelect}
-        />
+        {showChatRequests ? (
+          <ChatRequestHandler onRequestAccepted={handleRequestAccepted} />
+        ) : (
+          <ChatSidebar 
+            selectedChat={selectedChat}
+            onSelectChat={handleChatSelect}
+          />
+        )}
       </div>
 
       {/* Main Chat Area */}
