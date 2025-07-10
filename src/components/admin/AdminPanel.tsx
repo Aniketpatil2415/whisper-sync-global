@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminRequestPanel } from './AdminRequestPanel';
+import { AdminAchievements } from './AdminAchievements';
 import { ref, onValue, off } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
@@ -158,9 +159,10 @@ export const AdminPanel: React.FC = () => {
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
             <TabsTrigger value="requests" className="text-xs md:text-sm">Requests</TabsTrigger>
+            <TabsTrigger value="achievements" className="text-xs md:text-sm">Achievements</TabsTrigger>
             <TabsTrigger value="features" className="text-xs md:text-sm">Features</TabsTrigger>
             <TabsTrigger value="system" className="text-xs md:text-sm">System</TabsTrigger>
           </TabsList>
@@ -291,6 +293,10 @@ export const AdminPanel: React.FC = () => {
 
           <TabsContent value="requests" className="space-y-4 md:space-y-6">
             <AdminRequestPanel />
+          </TabsContent>
+
+          <TabsContent value="achievements" className="space-y-4 md:space-y-6">
+            <AdminAchievements />
           </TabsContent>
 
           <TabsContent value="features" className="space-y-4 md:space-y-6">

@@ -14,6 +14,8 @@ interface AdminContextProps {
   toggleMaintenanceMode: () => Promise<void>;
   removeGroup: (groupId: string) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
+  giveAchievementToUser: (userId: string, achievement: string) => Promise<void>;
+  getUserAnalytics: () => Promise<any>;
 }
 
 interface AdminSettings {
@@ -177,6 +179,67 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const giveAchievementToUser = async (userId: string, achievement: string) => {
+    try {
+      const userRef = ref(database, `users/${userId}/achievements`);
+      const timestamp = Date.now();
+      await update(userRef, { 
+        [achievement]: {
+          awarded: true,
+          timestamp,
+          awardedBy: user?.uid
+        }
+      });
+    } catch (error) {
+      console.error("Error giving achievement:", error);
+      throw error;
+    }
+  };
+
+  const getUserAnalytics = async () => {
+    try {
+      const usersRef = ref(database, 'users');
+      const chatsRef = ref(database, 'chats');
+      const messagesRef = ref(database, 'messages');
+
+      const [usersSnapshot, chatsSnapshot, messagesSnapshot] = await Promise.all([
+        get(usersRef),
+        get(chatsRef),
+        get(messagesRef)
+      ]);
+
+      const users = usersSnapshot.val() || {};
+      const chats = chatsSnapshot.val() || {};
+      const messages = messagesSnapshot.val() || {};
+
+      const analytics = {
+        totalUsers: Object.keys(users).length,
+        onlineUsers: Object.values(users).filter((u: any) => u.isOnline).length,
+        verifiedUsers: Object.values(users).filter((u: any) => u.isVerified).length,
+        newUsersToday: Object.values(users).filter((u: any) => {
+          const userCreated = u.createdAt || 0;
+          const today = new Date().setHours(0, 0, 0, 0);
+          return userCreated >= today;
+        }).length,
+        totalChats: Object.keys(chats).length,
+        totalMessages: Object.keys(messages).length,
+        mostActiveUsers: Object.entries(users)
+          .map(([uid, userData]: [string, any]) => ({
+            uid,
+            ...userData,
+            messageCount: Object.values(messages).filter((msg: any) => msg.senderId === uid).length
+          }))
+          .sort((a, b) => b.messageCount - a.messageCount)
+          .slice(0, 10)
+      };
+
+      return analytics;
+    } catch (error) {
+      console.error("Error getting analytics:", error);
+      throw error;
+    }
+  };
+
   const value: AdminContextProps = {
     isAdmin,
     adminSettings,
@@ -187,6 +250,8 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     toggleMaintenanceMode,
     removeGroup,
     deleteChat,
+    giveAchievementToUser,
+    getUserAnalytics,
   };
 
   return (
