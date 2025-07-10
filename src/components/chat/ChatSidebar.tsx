@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { CheckCircle, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -223,7 +224,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full">
+    <div className="flex flex-col h-full">
       {/* Search */}
       <div className="p-3 md:p-4">
         <Input
@@ -236,7 +237,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
       </div>
 
       {/* Chats List */}
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea className="flex-1">
         {loading ? (
           <div className="p-4 text-center text-muted-foreground">
             Loading chats...
@@ -362,7 +363,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             )}
           </div>
         )}
-      </div>
+      </ScrollArea>
     </div>
   );
 };

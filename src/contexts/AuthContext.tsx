@@ -20,6 +20,9 @@ interface UserProfile {
   isVerified?: boolean;
   isDisabled?: boolean;
   disabledUntil?: number;
+  totalSessions?: number;
+  joinedAt?: number;
+  lastActive?: number;
 }
 
 interface AuthContextType {

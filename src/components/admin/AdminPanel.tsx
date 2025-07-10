@@ -15,8 +15,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Users, Settings, Trash2, Ban, CheckCircle, UserCheck } from 'lucide-react';
+import { Shield, Users, Settings, Trash2, Ban, CheckCircle, UserCheck, Activity, Clock } from 'lucide-react';
 
 interface User {
   uid: string;
@@ -27,6 +28,18 @@ interface User {
   isVerified?: boolean;
   isDisabled?: boolean;
   disabledUntil?: number;
+  totalSessions?: number;
+  lastActive?: number;
+  joinedAt?: number;
+}
+
+interface UserActivity {
+  uid: string;
+  displayName: string;
+  totalSessions: number;
+  dailyUsage: Record<string, number>;
+  lastActive: number;
+  joinedAt: number;
 }
 
 export const AdminPanel: React.FC = () => {
@@ -44,6 +57,7 @@ export const AdminPanel: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
+  const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [disableDuration, setDisableDuration] = useState('1');
   const [loading, setLoading] = useState(false);
@@ -52,6 +66,7 @@ export const AdminPanel: React.FC = () => {
     if (!isAdmin) return;
 
     const usersRef = ref(database, 'users');
+    const activityRef = ref(database, 'userActivity');
     
     const handleUsersChange = (snapshot: any) => {
       const data = snapshot.val();
@@ -61,12 +76,38 @@ export const AdminPanel: React.FC = () => {
       }
     };
 
+    const handleActivityChange = (snapshot: any) => {
+      const data = snapshot.val();
+      if (data) {
+        const activities: UserActivity[] = [];
+        Object.entries(data).forEach(([uid, activity]: [string, any]) => {
+          const user = users.find(u => u.uid === uid);
+          if (user) {
+            activities.push({
+              uid,
+              displayName: user.displayName,
+              totalSessions: activity.totalSessions || 0,
+              dailyUsage: activity.dailyUsage || {},
+              lastActive: activity.lastActive || 0,
+              joinedAt: user.joinedAt || 0
+            });
+          }
+        });
+        
+        // Sort by total sessions (most active first)
+        activities.sort((a, b) => (b.totalSessions || 0) - (a.totalSessions || 0));
+        setUserActivities(activities);
+      }
+    };
+
     onValue(usersRef, handleUsersChange);
+    onValue(activityRef, handleActivityChange);
 
     return () => {
       off(usersRef, 'value', handleUsersChange);
+      off(activityRef, 'value', handleActivityChange);
     };
-  }, [isAdmin, user]);
+  }, [isAdmin, user, users]);
 
   if (!isAdmin) {
     return (
@@ -148,8 +189,9 @@ export const AdminPanel: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-3 md:p-6">
-      <div className="max-w-6xl mx-auto">
+    <ScrollArea className="h-screen">
+      <div className="min-h-screen bg-background p-3 md:p-6">
+        <div className="max-w-6xl mx-auto">
         <div className="mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
             <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary" />
@@ -159,8 +201,9 @@ export const AdminPanel: React.FC = () => {
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
+            <TabsTrigger value="analytics" className="text-xs md:text-sm">Analytics</TabsTrigger>
             <TabsTrigger value="requests" className="text-xs md:text-sm">Requests</TabsTrigger>
             <TabsTrigger value="achievements" className="text-xs md:text-sm">Achievements</TabsTrigger>
             <TabsTrigger value="features" className="text-xs md:text-sm">Features</TabsTrigger>
@@ -252,7 +295,8 @@ export const AdminPanel: React.FC = () => {
 
                 <div className="mt-4 md:mt-6">
                   <h3 className="text-base md:text-lg font-semibold mb-3 md:mb-4">All Users</h3>
-                  <div className="grid gap-2 md:gap-3 max-h-96 overflow-y-auto">
+                  <ScrollArea className="h-96 w-full">
+                    <div className="grid gap-2 md:gap-3 pr-4">
                     {users.map((user) => (
                       <div
                         key={user.uid}
@@ -285,10 +329,121 @@ export const AdminPanel: React.FC = () => {
                         </div>
                       </div>
                     ))}
-                  </div>
+                    </div>
+                  </ScrollArea>
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-4 md:space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              {/* Most Active Users */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                    <Activity className="h-4 w-4 md:h-5 md:w-5" />
+                    Most Active Users
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Users with highest app usage
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-80 w-full">
+                    <div className="space-y-3 pr-4">
+                      {userActivities.slice(0, 10).map((activity, index) => (
+                        <div key={activity.uid} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-8 h-8 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm">{activity.displayName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {activity.totalSessions || 0} sessions
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            {Object.keys(activity.dailyUsage || {}).length} days active
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
+              {/* User Statistics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                    <Users className="h-4 w-4 md:h-5 md:w-5" />
+                    User Statistics
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    App usage statistics
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-primary/5 rounded-lg">
+                      <p className="text-2xl font-bold text-primary">{users.length}</p>
+                      <p className="text-sm text-muted-foreground">Total Users</p>
+                    </div>
+                    <div className="text-center p-4 bg-green-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-green-600">
+                        {users.filter(u => u.isOnline).length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Online Now</p>
+                    </div>
+                    <div className="text-center p-4 bg-blue-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-blue-600">
+                        {users.filter(u => u.isVerified).length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Verified Users</p>
+                    </div>
+                    <div className="text-center p-4 bg-orange-500/5 rounded-lg">
+                      <p className="text-2xl font-bold text-orange-600">
+                        {users.filter(u => {
+                          const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+                          return u.joinedAt && u.joinedAt > oneWeekAgo;
+                        }).length}
+                      </p>
+                      <p className="text-sm text-muted-foreground">New This Week</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6">
+                    <h4 className="font-medium mb-3">Recent Activity</h4>
+                    <div className="space-y-2">
+                      {users
+                        .filter(u => u.lastActive)
+                        .sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0))
+                        .slice(0, 5)
+                        .map(user => (
+                          <div key={user.uid} className="flex items-center justify-between p-2 bg-secondary/50 rounded">
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage src={user.photoURL} />
+                                <AvatarFallback className="text-xs">
+                                  {user.displayName?.[0]?.toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">{user.displayName}</span>
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {user.lastActive && new Date(user.lastActive).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-4 md:space-y-6">
@@ -411,7 +566,8 @@ export const AdminPanel: React.FC = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
-    </div>
+    </ScrollArea>
   );
 };
