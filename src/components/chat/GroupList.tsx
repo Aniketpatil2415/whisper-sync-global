@@ -11,6 +11,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Users, Crown, Trash2, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { GroupMemberManager } from '@/components/admin/GroupMemberManager';
+import { UserProfile } from './UserProfile';
 
 interface Group {
   id: string;
@@ -25,6 +27,8 @@ interface Group {
     senderName: string;
   };
   isDeleted?: boolean;
+  isDisabled?: boolean;
+  disabledUntil?: number;
 }
 
 interface GroupListProps {
@@ -192,6 +196,11 @@ export const GroupList: React.FC<GroupListProps> = ({
                             <Badge variant="secondary" className="text-xs">
                               {memberCount} members
                             </Badge>
+                            {group.isDisabled && (
+                              <Badge variant="destructive" className="text-xs">
+                                Disabled
+                              </Badge>
+                            )}
                           </div>
                           {group.lastMessage && (
                             <span className="text-xs text-muted-foreground">
@@ -199,18 +208,43 @@ export const GroupList: React.FC<GroupListProps> = ({
                             </span>
                           )}
                         </div>
-                        <p className="text-xs md:text-sm text-muted-foreground truncate">
-                          {group.lastMessage ? (
-                            `${group.lastMessage.senderName}: ${group.lastMessage.text}`
-                          ) : (
-                            'No messages yet'
-                          )}
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs md:text-sm text-muted-foreground truncate flex-1">
+                            {group.lastMessage ? (
+                              <>
+                                <UserProfile
+                                  userId={group.lastMessage.sender}
+                                  trigger={
+                                    <span className="hover:underline cursor-pointer">
+                                      {group.lastMessage.senderName}:
+                                    </span>
+                                  }
+                                />
+                                {' '}{group.lastMessage.text}
+                              </>
+                            ) : (
+                              'No messages yet'
+                            )}
+                          </p>
+                        </div>
                       </div>
 
                       {/* Admin Controls */}
                       {isAdmin && (
                         <div className="opacity-0 group-hover/item:opacity-100 transition-opacity flex space-x-1">
+                          <GroupMemberManager
+                            group={group}
+                            trigger={
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => e.stopPropagation()}
+                                className="h-8 w-8 p-0 text-primary hover:text-primary hover:bg-primary/10"
+                              >
+                                <Settings className="h-4 w-4" />
+                              </Button>
+                            }
+                          />
                           <Button
                             variant="ghost"
                             size="sm"

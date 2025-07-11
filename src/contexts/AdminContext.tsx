@@ -1,6 +1,5 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { ref, update, get, onValue, off } from 'firebase/database';
+import { ref, update, get, onValue, off, remove } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
 
@@ -13,13 +12,19 @@ interface AdminContextProps {
   toggleFeature: (feature: string) => Promise<void>;
   toggleMaintenanceMode: () => Promise<void>;
   removeGroup: (groupId: string) => Promise<void>;
+  disableGroup: (groupId: string, durationInDays: number) => Promise<void>;
   deleteChat: (chatId: string) => Promise<void>;
+  addMemberToGroup: (groupId: string, userId: string) => Promise<void>;
+  removeMemberFromGroup: (groupId: string, userId: string) => Promise<void>;
   giveAchievementToUser: (userId: string, achievement: string) => Promise<void>;
+  removeAchievementFromUser: (userId: string, achievement: string) => Promise<void>;
   getUserAnalytics: () => Promise<any>;
+  updateGroupMemberLimit: (limit: number) => Promise<void>;
 }
 
 interface AdminSettings {
   maintenanceMode: boolean;
+  groupMemberLimit: number;
   featureFlags: {
     enableGroupChat: boolean;
     enableFileSharing: boolean;
@@ -33,6 +38,7 @@ const AdminContext = createContext<AdminContextProps | undefined>(undefined);
 
 const initialSettings: AdminSettings = {
   maintenanceMode: false,
+  groupMemberLimit: 10,
   featureFlags: {
     enableGroupChat: true,
     enableFileSharing: true,
@@ -169,12 +175,67 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const disableGroup = async (groupId: string, durationInDays: number) => {
+    try {
+      const groupRef = ref(database, `groups/${groupId}`);
+      const disableUntil = Date.now() + durationInDays * 24 * 60 * 60 * 1000;
+      await update(groupRef, { 
+        isDisabled: true, 
+        disabledUntil: disableUntil,
+        disabledBy: user?.uid
+      });
+    } catch (error) {
+      console.error("Error disabling group:", error);
+      throw error;
+    }
+  };
+
   const deleteChat = async (chatId: string) => {
     try {
       const chatRef = ref(database, `chats/${chatId}`);
       await update(chatRef, { isDeleted: true });
+      
+      // Also delete associated messages
+      const messagesRef = ref(database, `messages/${chatId}`);
+      await remove(messagesRef);
     } catch (error) {
       console.error("Error deleting chat:", error);
+      throw error;
+    }
+  };
+
+  const addMemberToGroup = async (groupId: string, userId: string) => {
+    try {
+      // Check current member count
+      const groupRef = ref(database, `groups/${groupId}`);
+      const snapshot = await get(groupRef);
+      const groupData = snapshot.val();
+      
+      if (!groupData) throw new Error("Group not found");
+      
+      const currentMembers = Object.keys(groupData.members || {});
+      if (currentMembers.length >= adminSettings.groupMemberLimit) {
+        throw new Error(`Group member limit of ${adminSettings.groupMemberLimit} reached`);
+      }
+
+      const memberRef = ref(database, `groups/${groupId}/members/${userId}`);
+      await update(memberRef, {
+        role: 'member',
+        joinedAt: Date.now(),
+        addedBy: user?.uid
+      });
+    } catch (error) {
+      console.error("Error adding member to group:", error);
+      throw error;
+    }
+  };
+
+  const removeMemberFromGroup = async (groupId: string, userId: string) => {
+    try {
+      const memberRef = ref(database, `groups/${groupId}/members/${userId}`);
+      await remove(memberRef);
+    } catch (error) {
+      console.error("Error removing member from group:", error);
       throw error;
     }
   };
@@ -192,6 +253,31 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
     } catch (error) {
       console.error("Error giving achievement:", error);
+      throw error;
+    }
+  };
+
+  const removeAchievementFromUser = async (userId: string, achievement: string) => {
+    try {
+      const achievementRef = ref(database, `users/${userId}/achievements/${achievement}`);
+      await remove(achievementRef);
+    } catch (error) {
+      console.error("Error removing achievement:", error);
+      throw error;
+    }
+  };
+
+  const updateGroupMemberLimit = async (limit: number) => {
+    try {
+      const settingsRef = ref(database, 'adminSettings');
+      await update(settingsRef, { groupMemberLimit: limit });
+      
+      setAdminSettings(prevSettings => ({
+        ...prevSettings,
+        groupMemberLimit: limit
+      }));
+    } catch (error) {
+      console.error("Error updating group member limit:", error);
       throw error;
     }
   };
@@ -249,9 +335,14 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     toggleFeature,
     toggleMaintenanceMode,
     removeGroup,
+    disableGroup,
     deleteChat,
+    addMemberToGroup,
+    removeMemberFromGroup,
     giveAchievementToUser,
+    removeAchievementFromUser,
     getUserAnalytics,
+    updateGroupMemberLimit,
   };
 
   return (

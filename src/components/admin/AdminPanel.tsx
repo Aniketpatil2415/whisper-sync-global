@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { Shield, Users, Settings, Trash2, Ban, CheckCircle, UserCheck, Activity, Clock } from 'lucide-react';
+import { UserProfile } from '@/components/chat/UserProfile';
 
 interface User {
   uid: string;
@@ -52,7 +52,8 @@ export const AdminPanel: React.FC = () => {
     toggleFeature, 
     toggleMaintenanceMode,
     removeGroup,
-    deleteChat 
+    deleteChat,
+    updateGroupMemberLimit
   } = useAdmin();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -60,6 +61,7 @@ export const AdminPanel: React.FC = () => {
   const [userActivities, setUserActivities] = useState<UserActivity[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [disableDuration, setDisableDuration] = useState('1');
+  const [newMemberLimit, setNewMemberLimit] = useState(adminSettings.groupMemberLimit.toString());
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -108,6 +110,10 @@ export const AdminPanel: React.FC = () => {
       off(activityRef, 'value', handleActivityChange);
     };
   }, [isAdmin, user, users]);
+
+  useEffect(() => {
+    setNewMemberLimit(adminSettings.groupMemberLimit.toString());
+  }, [adminSettings.groupMemberLimit]);
 
   if (!isAdmin) {
     return (
@@ -181,6 +187,35 @@ export const AdminPanel: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to disable user",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateMemberLimit = async () => {
+    const limit = parseInt(newMemberLimit);
+    if (limit < 1 || limit > 100) {
+      toast({
+        title: "Error",
+        description: "Member limit must be between 1 and 100",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await updateGroupMemberLimit(limit);
+      toast({
+        title: "Success",
+        description: `Group member limit updated to ${limit}!`
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update member limit",
         variant: "destructive"
       });
     } finally {
@@ -303,12 +338,17 @@ export const AdminPanel: React.FC = () => {
                         className="flex items-center justify-between p-3 md:p-4 border rounded-lg"
                       >
                         <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-                          <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0">
-                            <AvatarImage src={user.photoURL} />
-                            <AvatarFallback className="text-xs md:text-sm">
-                              {user.displayName?.[0]?.toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
+                          <UserProfile
+                            userId={user.uid}
+                            trigger={
+                              <Avatar className="h-8 w-8 md:h-10 md:w-10 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-primary">
+                                <AvatarImage src={user.photoURL} />
+                                <AvatarFallback className="text-xs md:text-sm">
+                                  {user.displayName?.[0]?.toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                            }
+                          />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1 md:gap-2">
                               <span className="font-medium text-sm md:text-base truncate">{user.displayName}</span>
@@ -358,12 +398,17 @@ export const AdminPanel: React.FC = () => {
                             <div className="flex items-center justify-center w-8 h-8 bg-primary/10 text-primary rounded-full text-sm font-medium">
                               {index + 1}
                             </div>
-                            <div>
-                              <p className="font-medium text-sm">{activity.displayName}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {activity.totalSessions || 0} sessions
-                              </p>
-                            </div>
+                            <UserProfile
+                              userId={activity.uid}
+                              trigger={
+                                <div className="cursor-pointer hover:underline">
+                                  <p className="font-medium text-sm">{activity.displayName}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {activity.totalSessions || 0} sessions
+                                  </p>
+                                </div>
+                              }
+                            />
                           </div>
                           <Badge variant="secondary" className="text-xs">
                             {Object.keys(activity.dailyUsage || {}).length} days active
@@ -425,12 +470,17 @@ export const AdminPanel: React.FC = () => {
                         .map(user => (
                           <div key={user.uid} className="flex items-center justify-between p-2 bg-secondary/50 rounded">
                             <div className="flex items-center gap-2">
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={user.photoURL} />
-                                <AvatarFallback className="text-xs">
-                                  {user.displayName?.[0]?.toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
+                              <UserProfile
+                                userId={user.uid}
+                                trigger={
+                                  <Avatar className="h-6 w-6 cursor-pointer hover:ring-2 hover:ring-primary">
+                                    <AvatarImage src={user.photoURL} />
+                                    <AvatarFallback className="text-xs">
+                                      {user.displayName?.[0]?.toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                }
+                              />
                               <span className="text-sm">{user.displayName}</span>
                             </div>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -561,6 +611,34 @@ export const AdminPanel: React.FC = () => {
                     checked={adminSettings.maintenanceMode}
                     onCheckedChange={toggleMaintenanceMode}
                   />
+                </div>
+
+                <div className="p-3 md:p-4 border rounded-lg space-y-4">
+                  <div>
+                    <Label className="text-sm md:text-base">Group Member Limit</Label>
+                    <p className="text-xs md:text-sm text-muted-foreground">
+                      Maximum number of members allowed in a group
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={newMemberLimit}
+                      onChange={(e) => setNewMemberLimit(e.target.value)}
+                      className="w-20"
+                    />
+                    <Button
+                      onClick={handleUpdateMemberLimit}
+                      disabled={loading || newMemberLimit === adminSettings.groupMemberLimit.toString()}
+                    >
+                      Update Limit
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Current limit: {adminSettings.groupMemberLimit} members
+                  </p>
                 </div>
               </CardContent>
             </Card>
