@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAdmin } from '@/contexts/AdminContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -285,6 +284,8 @@ export const AdminPanel: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
   return (
     <div className="min-h-screen bg-background">
@@ -652,10 +653,9 @@ export const AdminPanel: React.FC = () => {
                       </Button>
                     </div>
 
-                    {selectedGroupId && (
+                    {selectedGroup && (
                       <GroupMemberManager 
-                        groupId={selectedGroupId}
-                        memberLimit={adminSettings.groupMemberLimit}
+                        group={selectedGroup}
                       />
                     )}
 

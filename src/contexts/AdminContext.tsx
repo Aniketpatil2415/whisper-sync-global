@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { ref, update, get, onValue, off, remove, push } from 'firebase/database';
 import { database } from '@/lib/firebase';
@@ -56,7 +55,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminSettings, setAdminSettings] = useState<AdminSettings>(initialSettings);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -72,7 +70,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } else {
         setIsAdmin(false);
       }
-      setLoading(false);
     };
 
     checkAdminStatus();
@@ -399,18 +396,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     banUserFromGroup,
     makeUserGroupAdmin,
   };
-
-  // Don't render anything until loading is complete
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <AdminContext.Provider value={value}>
