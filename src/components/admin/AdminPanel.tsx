@@ -289,593 +289,601 @@ export const AdminPanel: React.FC = () => {
   const selectedGroup = groups.find(g => g.id === selectedGroupId);
 
   return (
-    <div className="min-h-screen bg-background">
-      <ScrollArea className="h-screen">
-        <div className="p-3 md:p-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-6 md:mb-8">
-              <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
-                <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-                Admin Panel
-              </h1>
-              <p className="text-muted-foreground text-sm md:text-base">Manage users, groups, settings, and system features</p>
-            </div>
+    <div className="h-screen bg-background flex flex-col">
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="p-3 md:p-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="mb-6 md:mb-8">
+                <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+                  <Shield className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+                  Admin Panel
+                </h1>
+                <p className="text-muted-foreground text-sm md:text-base">Manage users, groups, settings, and system features</p>
+              </div>
 
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-7 mb-6">
-                <TabsTrigger value="overview" className="text-xs md:text-sm">Overview</TabsTrigger>
-                <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
-                <TabsTrigger value="groups" className="text-xs md:text-sm">Groups</TabsTrigger>
-                <TabsTrigger value="analytics" className="text-xs md:text-sm">Analytics</TabsTrigger>
-                <TabsTrigger value="requests" className="text-xs md:text-sm">Requests</TabsTrigger>
-                <TabsTrigger value="achievements" className="text-xs md:text-sm">Achievements</TabsTrigger>
-                <TabsTrigger value="settings" className="text-xs md:text-sm">Settings</TabsTrigger>
-              </TabsList>
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-7 mb-6">
+                  <TabsTrigger value="overview" className="text-xs md:text-sm">Overview</TabsTrigger>
+                  <TabsTrigger value="users" className="text-xs md:text-sm">Users</TabsTrigger>
+                  <TabsTrigger value="groups" className="text-xs md:text-sm">Groups</TabsTrigger>
+                  <TabsTrigger value="analytics" className="text-xs md:text-sm">Analytics</TabsTrigger>
+                  <TabsTrigger value="requests" className="text-xs md:text-sm">Requests</TabsTrigger>
+                  <TabsTrigger value="achievements" className="text-xs md:text-sm">Achievements</TabsTrigger>
+                  <TabsTrigger value="settings" className="text-xs md:text-sm">Settings</TabsTrigger>
+                </TabsList>
 
-              <TabsContent value="overview" className="space-y-4 md:space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-primary" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total Users</p>
-                          <p className="text-xl font-bold">{analytics?.totalUsers || users.length}</p>
+                <TabsContent value="overview" className="space-y-4 md:space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-5 w-5 text-primary" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Total Users</p>
+                            <p className="text-xl font-bold">{analytics?.totalUsers || users.length}</p>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
 
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Activity className="h-5 w-5 text-green-500" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Online Users</p>
-                          <p className="text-xl font-bold">{users.filter(u => u.isOnline).length}</p>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2">
+                          <Activity className="h-5 w-5 text-green-500" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Online Users</p>
+                            <p className="text-xl font-bold">{users.filter(u => u.isOnline).length}</p>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
 
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-blue-500" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total Groups</p>
-                          <p className="text-xl font-bold">{groups.length}</p>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-5 w-5 text-blue-500" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Total Groups</p>
+                            <p className="text-xl font-bold">{groups.length}</p>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
 
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="h-5 w-5 text-purple-500" />
-                        <div>
-                          <p className="text-sm text-muted-foreground">Total Messages</p>
-                          <p className="text-xl font-bold">{analytics?.totalMessages || 0}</p>
+                    <Card>
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="h-5 w-5 text-purple-500" />
+                          <div>
+                            <p className="text-sm text-muted-foreground">Total Messages</p>
+                            <p className="text-xl font-bold">{analytics?.totalMessages || 0}</p>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </CardContent>
+                    </Card>
+                  </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Crown className="h-5 w-5" />
-                        Quick Actions
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between p-3 border rounded-lg">
-                        <div>
-                          <Label>Maintenance Mode</Label>
-                          <p className="text-sm text-muted-foreground">
-                            {adminSettings.maintenanceMode ? 'System is in maintenance' : 'System is operational'}
-                          </p>
-                        </div>
-                        <Switch
-                          checked={adminSettings.maintenanceMode}
-                          onCheckedChange={toggleMaintenanceMode}
-                        />
-                      </div>
-                      <div className="p-3 border rounded-lg">
-                        <Label>Group Member Limit</Label>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Current limit: {adminSettings.groupMemberLimit} members
-                        </p>
-                        <div className="flex gap-2">
-                          <Input
-                            type="number"
-                            min="1"
-                            max="100"
-                            value={newMemberLimit}
-                            onChange={(e) => setNewMemberLimit(e.target.value)}
-                            className="w-20"
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Crown className="h-5 w-5" />
+                          Quick Actions
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between p-3 border rounded-lg">
+                          <div>
+                            <Label>Maintenance Mode</Label>
+                            <p className="text-sm text-muted-foreground">
+                              {adminSettings.maintenanceMode ? 'System is in maintenance' : 'System is operational'}
+                            </p>
+                          </div>
+                          <Switch
+                            checked={adminSettings.maintenanceMode}
+                            onCheckedChange={toggleMaintenanceMode}
                           />
-                          <Button
-                            onClick={handleUpdateMemberLimit}
-                            disabled={loading}
-                            size="sm"
-                          >
-                            Update
-                          </Button>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        <div className="p-3 border rounded-lg">
+                          <Label>Group Member Limit</Label>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            Current limit: {adminSettings.groupMemberLimit} members
+                          </p>
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              min="1"
+                              max="100"
+                              value={newMemberLimit}
+                              onChange={(e) => setNewMemberLimit(e.target.value)}
+                              className="w-20"
+                            />
+                            <Button
+                              onClick={handleUpdateMemberLimit}
+                              disabled={loading}
+                              size="sm"
+                            >
+                              Update
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
 
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Activity className="h-5 w-5" />
+                          Recent Activity
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ScrollArea className="h-48">
+                          <div className="space-y-2">
+                            {users
+                              .filter(u => u.lastActive)
+                              .sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0))
+                              .slice(0, 8)
+                              .map(user => (
+                                <div key={user.uid} className="flex items-center justify-between p-2 bg-secondary/50 rounded">
+                                  <div className="flex items-center gap-2">
+                                    <UserProfile
+                                      userId={user.uid}
+                                      trigger={
+                                        <Avatar className="h-6 w-6 cursor-pointer">
+                                          <AvatarImage src={user.photoURL} />
+                                          <AvatarFallback className="text-xs">
+                                            {user.displayName?.[0]?.toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      }
+                                    />
+                                    <span className="text-sm">{user.displayName}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                    <Clock className="h-3 w-3" />
+                                    {user.lastActive && new Date(user.lastActive).toLocaleDateString()}
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="users" className="space-y-4 md:space-y-6">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-5 w-5" />
-                        Recent Activity
+                        <Users className="h-5 w-5" />
+                        User Management
                       </CardTitle>
+                      <CardDescription>
+                        Manage user accounts, verification, and permissions
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <ScrollArea className="h-48">
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          {users
-                            .filter(u => u.lastActive)
-                            .sort((a, b) => (b.lastActive || 0) - (a.lastActive || 0))
-                            .slice(0, 8)
-                            .map(user => (
-                              <div key={user.uid} className="flex items-center justify-between p-2 bg-secondary/50 rounded">
-                                <div className="flex items-center gap-2">
-                                  <UserProfile
-                                    userId={user.uid}
-                                    trigger={
-                                      <Avatar className="h-6 w-6 cursor-pointer">
+                          <Label>Select User</Label>
+                          <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose a user" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <ScrollArea className="h-48">
+                                {users.map((user) => (
+                                  <SelectItem key={user.uid} value={user.uid}>
+                                    <div className="flex items-center gap-2">
+                                      <Avatar className="h-5 w-5">
                                         <AvatarImage src={user.photoURL} />
                                         <AvatarFallback className="text-xs">
                                           {user.displayName?.[0]?.toUpperCase()}
                                         </AvatarFallback>
                                       </Avatar>
-                                    }
-                                  />
-                                  <span className="text-sm">{user.displayName}</span>
-                                </div>
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                  <Clock className="h-3 w-3" />
-                                  {user.lastActive && new Date(user.lastActive).toLocaleDateString()}
-                                </div>
-                              </div>
-                            ))}
+                                      <span className="truncate">{user.displayName}</span>
+                                      {user.isVerified && <CheckCircle className="h-3 w-3 text-blue-500" />}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </ScrollArea>
+                            </SelectContent>
+                          </Select>
                         </div>
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
 
-              <TabsContent value="users" className="space-y-4 md:space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      User Management
-                    </CardTitle>
-                    <CardDescription>
-                      Manage user accounts, verification, and permissions
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Select User</Label>
-                        <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose a user" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <ScrollArea className="h-48">
-                              {users.map((user) => (
-                                <SelectItem key={user.uid} value={user.uid}>
-                                  <div className="flex items-center gap-2">
-                                    <Avatar className="h-5 w-5">
-                                      <AvatarImage src={user.photoURL} />
-                                      <AvatarFallback className="text-xs">
-                                        {user.displayName?.[0]?.toUpperCase()}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="truncate">{user.displayName}</span>
-                                    {user.isVerified && <CheckCircle className="h-3 w-3 text-blue-500" />}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </ScrollArea>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Duration (Days)</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="365"
-                          value={disableDuration}
-                          onChange={(e) => setDisableDuration(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        onClick={handleGiveBlueTick}
-                        disabled={!selectedUserId || loading}
-                        className="flex items-center gap-2"
-                      >
-                        <CheckCircle className="h-4 w-4" />
-                        Give Blue Tick
-                      </Button>
-                      
-                      <Button
-                        variant="destructive"
-                        onClick={handleRemoveUser}
-                        disabled={!selectedUserId || loading}
-                        className="flex items-center gap-2"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Remove User
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        onClick={handleDisableUser}
-                        disabled={!selectedUserId || loading}
-                        className="flex items-center gap-2"
-                      >
-                        <Ban className="h-4 w-4" />
-                        Disable User
-                      </Button>
-                    </div>
-
-                    <div className="mt-6">
-                      <h3 className="text-lg font-semibold mb-4">All Users</h3>
-                      <ScrollArea className="h-96 w-full border rounded-lg p-4">
                         <div className="space-y-2">
-                          {users.map((user) => (
-                            <div
-                              key={user.uid}
-                              className="flex items-center justify-between p-3 border rounded-lg hover:bg-secondary/50"
-                            >
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <UserProfile
-                                  userId={user.uid}
-                                  trigger={
-                                    <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-primary">
-                                      <AvatarImage src={user.photoURL} />
-                                      <AvatarFallback>
-                                        {user.displayName?.[0]?.toUpperCase()}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                  }
-                                />
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium truncate">{user.displayName}</span>
-                                    {user.isVerified && (
-                                      <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                          <Label>Duration (Days)</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="365"
+                            value={disableDuration}
+                            onChange={(e) => setDisableDuration(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          onClick={handleGiveBlueTick}
+                          disabled={!selectedUserId || loading}
+                          className="flex items-center gap-2"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                          Give Blue Tick
+                        </Button>
+                        
+                        <Button
+                          variant="destructive"
+                          onClick={handleRemoveUser}
+                          disabled={!selectedUserId || loading}
+                          className="flex items-center gap-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Remove User
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          onClick={handleDisableUser}
+                          disabled={!selectedUserId || loading}
+                          className="flex items-center gap-2"
+                        >
+                          <Ban className="h-4 w-4" />
+                          Disable User
+                        </Button>
+                      </div>
+
+                      <div className="mt-6">
+                        <h3 className="text-lg font-semibold mb-4">All Users</h3>
+                        <div className="border rounded-lg">
+                          <ScrollArea className="h-96 w-full p-4">
+                            <div className="space-y-2">
+                              {users.map((user) => (
+                                <div
+                                  key={user.uid}
+                                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-secondary/50"
+                                >
+                                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                                    <UserProfile
+                                      userId={user.uid}
+                                      trigger={
+                                        <Avatar className="h-10 w-10 cursor-pointer hover:ring-2 hover:ring-primary">
+                                          <AvatarImage src={user.photoURL} />
+                                          <AvatarFallback>
+                                            {user.displayName?.[0]?.toUpperCase()}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      }
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-medium truncate">{user.displayName}</span>
+                                        {user.isVerified && (
+                                          <CheckCircle className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <Badge variant={user.isOnline ? "default" : "secondary"}>
+                                      {user.isOnline ? "Online" : "Offline"}
+                                    </Badge>
+                                    {user.isDisabled && (
+                                      <Badge variant="destructive">Disabled</Badge>
                                     )}
                                   </div>
-                                  <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                                 </div>
-                              </div>
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                <Badge variant={user.isOnline ? "default" : "secondary"}>
-                                  {user.isOnline ? "Online" : "Offline"}
-                                </Badge>
-                                {user.isDisabled && (
-                                  <Badge variant="destructive">Disabled</Badge>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="groups" className="space-y-4 md:space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Users className="h-5 w-5" />
-                      Group Management
-                    </CardTitle>
-                    <CardDescription>
-                      Manage groups, members, and group settings
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label>Select Group</Label>
-                        <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose a group" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <ScrollArea className="h-48">
-                              {groups.map((group) => (
-                                <SelectItem key={group.id} value={group.id}>
-                                  <div className="flex items-center justify-between w-full">
-                                    <span className="truncate">{group.name}</span>
-                                    <span className="text-xs text-muted-foreground ml-2">
-                                      {Object.keys(group.members || {}).length} members
-                                    </span>
-                                  </div>
-                                </SelectItem>
                               ))}
-                            </ScrollArea>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Duration (Days)</Label>
-                        <Input
-                          type="number"
-                          min="1"
-                          max="365"
-                          value={disableDuration}
-                          onChange={(e) => setDisableDuration(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        variant="destructive"
-                        onClick={handleDeleteGroup}
-                        disabled={!selectedGroupId || loading}
-                        className="flex items-center gap-2"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        Delete Group
-                      </Button>
-                      
-                      <Button
-                        variant="outline"
-                        onClick={handleDisableGroup}
-                        disabled={!selectedGroupId || loading}
-                        className="flex items-center gap-2"
-                      >
-                        <Ban className="h-4 w-4" />
-                        Disable Group
-                      </Button>
-                    </div>
-
-                    {selectedGroup && selectedGroup.members && (
-                      <GroupMemberManager 
-                        group={selectedGroup}
-                      />
-                    )}
-
-                    <div className="mt-6">
-                      <h3 className="text-lg font-semibold mb-4">All Groups</h3>
-                      <ScrollArea className="h-96 w-full border rounded-lg p-4">
-                        <div className="space-y-2">
-                          {groups.map((group) => (
-                            <div
-                              key={group.id}
-                              className="flex items-center justify-between p-3 border rounded-lg hover:bg-secondary/50"
-                            >
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">{group.name}</span>
-                                  {group.isDisabled && (
-                                    <Badge variant="destructive">Disabled</Badge>
-                                  )}
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                  {group.description || 'No description'}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  Created {new Date(group.createdAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline">
-                                  {Object.keys(group.members || {}).length} members
-                                </Badge>
-                              </div>
                             </div>
-                          ))}
+                          </ScrollArea>
                         </div>
-                      </ScrollArea>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="analytics" className="space-y-4 md:space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Activity className="h-5 w-5" />
-                        Most Active Users
-                      </CardTitle>
-                      <CardDescription>
-                        Users with highest app usage
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <ScrollArea className="h-80 w-full">
-                        <div className="space-y-3">
-                          {analytics?.mostActiveUsers?.map((user: any, index: number) => (
-                            <div key={user.uid} className="flex items-center justify-between p-3 border rounded-lg">
-                              <div className="flex items-center gap-3">
-                                <div className="flex items-center justify-center w-8 h-8 bg-primary/10 text-primary rounded-full text-sm font-medium">
-                                  {index + 1}
-                                </div>
-                                <UserProfile
-                                  userId={user.uid}
-                                  trigger={
-                                    <div className="cursor-pointer hover:underline">
-                                      <p className="font-medium text-sm">{user.displayName}</p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {user.messageCount || 0} messages
-                                      </p>
-                                    </div>
-                                  }
-                                />
-                              </div>
-                              <Badge variant="secondary">
-                                {user.totalSessions || 0} sessions
-                              </Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </ScrollArea>
+                      </div>
                     </CardContent>
                   </Card>
+                </TabsContent>
 
+                <TabsContent value="groups" className="space-y-4 md:space-y-6">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <Users className="h-5 w-5" />
-                        User Statistics
+                        Group Management
                       </CardTitle>
                       <CardDescription>
-                        Detailed user engagement metrics
+                        Manage groups, members, and group settings
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center p-4 bg-primary/5 rounded-lg">
-                          <p className="text-2xl font-bold text-primary">{users.length}</p>
-                          <p className="text-sm text-muted-foreground">Total Users</p>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Select Group</Label>
+                          <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Choose a group" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <ScrollArea className="h-48">
+                                {groups.map((group) => (
+                                  <SelectItem key={group.id} value={group.id}>
+                                    <div className="flex items-center justify-between w-full">
+                                      <span className="truncate">{group.name}</span>
+                                      <span className="text-xs text-muted-foreground ml-2">
+                                        {Object.keys(group.members || {}).length} members
+                                      </span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </ScrollArea>
+                            </SelectContent>
+                          </Select>
                         </div>
-                        <div className="text-center p-4 bg-green-500/5 rounded-lg">
-                          <p className="text-2xl font-bold text-green-600">
-                            {users.filter(u => u.isOnline).length}
-                          </p>
-                          <p className="text-sm text-muted-foreground">Online Now</p>
+
+                        <div className="space-y-2">
+                          <Label>Duration (Days)</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            max="365"
+                            value={disableDuration}
+                            onChange={(e) => setDisableDuration(e.target.value)}
+                          />
                         </div>
-                        <div className="text-center p-4 bg-blue-500/5 rounded-lg">
-                          <p className="text-2xl font-bold text-blue-600">
-                            {users.filter(u => u.isVerified).length}
-                          </p>
-                          <p className="text-sm text-muted-foreground">Verified</p>
-                        </div>
-                        <div className="text-center p-4 bg-orange-500/5 rounded-lg">
-                          <p className="text-2xl font-bold text-orange-600">
-                            {users.filter(u => {
-                              const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-                              return u.joinedAt && u.joinedAt > oneWeekAgo;
-                            }).length}
-                          </p>
-                          <p className="text-sm text-muted-foreground">New This Week</p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="destructive"
+                          onClick={handleDeleteGroup}
+                          disabled={!selectedGroupId || loading}
+                          className="flex items-center gap-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete Group
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          onClick={handleDisableGroup}
+                          disabled={!selectedGroupId || loading}
+                          className="flex items-center gap-2"
+                        >
+                          <Ban className="h-4 w-4" />
+                          Disable Group
+                        </Button>
+                      </div>
+
+                      {selectedGroup && selectedGroup.members && (
+                        <GroupMemberManager 
+                          group={selectedGroup}
+                        />
+                      )}
+
+                      <div className="mt-6">
+                        <h3 className="text-lg font-semibold mb-4">All Groups</h3>
+                        <div className="border rounded-lg">
+                          <ScrollArea className="h-96 w-full p-4">
+                            <div className="space-y-2">
+                              {groups.map((group) => (
+                                <div
+                                  key={group.id}
+                                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-secondary/50"
+                                >
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium">{group.name}</span>
+                                      {group.isDisabled && (
+                                        <Badge variant="destructive">Disabled</Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">
+                                      {group.description || 'No description'}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Created {new Date(group.createdAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline">
+                                      {Object.keys(group.members || {}).length} members
+                                    </Badge>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
-                </div>
-              </TabsContent>
+                </TabsContent>
 
-              <TabsContent value="requests" className="space-y-4 md:space-y-6">
-                <AdminRequestPanel />
-              </TabsContent>
-
-              <TabsContent value="achievements" className="space-y-4 md:space-y-6">
-                <AdminAchievements />
-              </TabsContent>
-
-              <TabsContent value="settings" className="space-y-4 md:space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="h-5 w-5" />
-                      Feature Settings
-                    </CardTitle>
-                    <CardDescription>
-                      Enable or disable app features for all users
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <Label>Group Chat</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Allow users to create and join group chats
-                          </p>
+                <TabsContent value="analytics" className="space-y-4 md:space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Activity className="h-5 w-5" />
+                          Most Active Users
+                        </CardTitle>
+                        <CardDescription>
+                          Users with highest app usage
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="max-h-80 overflow-y-auto">
+                          <ScrollArea className="h-80 w-full">
+                            <div className="space-y-3">
+                              {analytics?.mostActiveUsers?.map((user: any, index: number) => (
+                                <div key={user.uid} className="flex items-center justify-between p-3 border rounded-lg">
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex items-center justify-center w-8 h-8 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                                      {index + 1}
+                                    </div>
+                                    <UserProfile
+                                      userId={user.uid}
+                                      trigger={
+                                        <div className="cursor-pointer hover:underline">
+                                          <p className="font-medium text-sm">{user.displayName}</p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {user.messageCount || 0} messages
+                                          </p>
+                                        </div>
+                                      }
+                                    />
+                                  </div>
+                                  <Badge variant="secondary">
+                                    {user.totalSessions || 0} sessions
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
                         </div>
-                        <Switch
-                          checked={adminSettings.featureFlags.enableGroupChat}
-                          onCheckedChange={() => toggleFeature('enableGroupChat')}
-                        />
-                      </div>
+                      </CardContent>
+                    </Card>
 
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <Label>File Sharing</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Allow users to share files and images
-                          </p>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Users className="h-5 w-5" />
+                          User Statistics
+                        </CardTitle>
+                        <CardDescription>
+                          Detailed user engagement metrics
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center p-4 bg-primary/5 rounded-lg">
+                            <p className="text-2xl font-bold text-primary">{users.length}</p>
+                            <p className="text-sm text-muted-foreground">Total Users</p>
+                          </div>
+                          <div className="text-center p-4 bg-green-500/5 rounded-lg">
+                            <p className="text-2xl font-bold text-green-600">
+                              {users.filter(u => u.isOnline).length}
+                            </p>
+                            <p className="text-sm text-muted-foreground">Online Now</p>
+                          </div>
+                          <div className="text-center p-4 bg-blue-500/5 rounded-lg">
+                            <p className="text-2xl font-bold text-blue-600">
+                              {users.filter(u => u.isVerified).length}
+                            </p>
+                            <p className="text-sm text-muted-foreground">Verified</p>
+                          </div>
+                          <div className="text-center p-4 bg-orange-500/5 rounded-lg">
+                            <p className="text-2xl font-bold text-orange-600">
+                              {users.filter(u => {
+                                const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+                                return u.joinedAt && u.joinedAt > oneWeekAgo;
+                              }).length}
+                            </p>
+                            <p className="text-sm text-muted-foreground">New This Week</p>
+                          </div>
                         </div>
-                        <Switch
-                          checked={adminSettings.featureFlags.enableFileSharing}
-                          onCheckedChange={() => toggleFeature('enableFileSharing')}
-                        />
-                      </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
 
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <Label>Voice Messages</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Allow users to send voice messages
-                          </p>
-                        </div>
-                        <Switch
-                          checked={adminSettings.featureFlags.enableVoiceMessages}
-                          onCheckedChange={() => toggleFeature('enableVoiceMessages')}
-                        />
-                      </div>
+                <TabsContent value="requests" className="space-y-4 md:space-y-6">
+                  <AdminRequestPanel />
+                </TabsContent>
 
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <Label>Message Reactions</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Allow users to react to messages with emojis
-                          </p>
-                        </div>
-                        <Switch
-                          checked={adminSettings.featureFlags.enableMessageReactions}
-                          onCheckedChange={() => toggleFeature('enableMessageReactions')}
-                        />
-                      </div>
+                <TabsContent value="achievements" className="space-y-4 md:space-y-6">
+                  <AdminAchievements />
+                </TabsContent>
 
-                      <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <Label>Message Deletion</Label>
-                          <p className="text-sm text-muted-foreground">
-                            Allow users to delete messages for themselves or everyone
-                          </p>
+                <TabsContent value="settings" className="space-y-4 md:space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Settings className="h-5 w-5" />
+                        Feature Settings
+                      </CardTitle>
+                      <CardDescription>
+                        Enable or disable app features for all users
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <Label>Group Chat</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Allow users to create and join group chats
+                            </p>
+                          </div>
+                          <Switch
+                            checked={adminSettings.featureFlags.enableGroupChat}
+                            onCheckedChange={() => toggleFeature('enableGroupChat')}
+                          />
                         </div>
-                        <Switch
-                          checked={adminSettings.featureFlags.enableMessageDeletion}
-                          onCheckedChange={() => toggleFeature('enableMessageDeletion')}
-                        />
+
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <Label>File Sharing</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Allow users to share files and images
+                            </p>
+                          </div>
+                          <Switch
+                            checked={adminSettings.featureFlags.enableFileSharing}
+                            onCheckedChange={() => toggleFeature('enableFileSharing')}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <Label>Voice Messages</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Allow users to send voice messages
+                            </p>
+                          </div>
+                          <Switch
+                            checked={adminSettings.featureFlags.enableVoiceMessages}
+                            onCheckedChange={() => toggleFeature('enableVoiceMessages')}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <Label>Message Reactions</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Allow users to react to messages with emojis
+                            </p>
+                          </div>
+                          <Switch
+                            checked={adminSettings.featureFlags.enableMessageReactions}
+                            onCheckedChange={() => toggleFeature('enableMessageReactions')}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between p-4 border rounded-lg">
+                          <div className="flex-1">
+                            <Label>Message Deletion</Label>
+                            <p className="text-sm text-muted-foreground">
+                              Allow users to delete messages for themselves or everyone
+                            </p>
+                          </div>
+                          <Switch
+                            checked={adminSettings.featureFlags.enableMessageDeletion}
+                            onCheckedChange={() => toggleFeature('enableMessageDeletion')}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
-        </div>
-      </ScrollArea>
+        </ScrollArea>
+      </div>
     </div>
   );
 };
