@@ -41,7 +41,7 @@ interface Group {
   description?: string;
   createdBy: string;
   createdAt: number;
-  members?: Record<string, any>;
+  members: Record<string, any>;
   isDeleted?: boolean;
   isDisabled?: boolean;
   disabledUntil?: number;
@@ -98,7 +98,8 @@ export const AdminPanel: React.FC = () => {
       if (data) {
         const groupsList = Object.entries(data).map(([id, groupData]: [string, any]) => ({
           id,
-          ...groupData
+          ...groupData,
+          members: groupData.members || {} // Ensure members is always defined
         })) as Group[];
         setGroups(groupsList.filter(g => !g.isDeleted));
       }
@@ -653,7 +654,7 @@ export const AdminPanel: React.FC = () => {
                       </Button>
                     </div>
 
-                    {selectedGroup && (
+                    {selectedGroup && selectedGroup.members && (
                       <GroupMemberManager 
                         group={selectedGroup}
                       />
