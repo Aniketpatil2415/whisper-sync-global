@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -7,7 +6,9 @@ import { useAdmin } from '@/contexts/AdminContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChatSidebar } from './ChatSidebar';
+import { GroupList } from './GroupList';
 import { ChatWindow } from './ChatWindow';
 import { ProfileSetup } from './ProfileSetup';
 import { GroupChatModal } from './GroupChatModal';
@@ -32,6 +33,7 @@ export const ChatLayout = () => {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showAdminSetup, setShowAdminSetup] = useState(false);
   const [showChatRequests, setShowChatRequests] = useState(false);
+  const [activeTab, setActiveTab] = useState('chats');
 
   // Track user activity
   useEffect(() => {
@@ -131,6 +133,7 @@ export const ChatLayout = () => {
 
   const handleGroupCreated = (groupId: string) => {
     setSelectedChat(groupId);
+    setActiveTab('groups');
     vibrate([50, 100, 50]); // Success vibration
   };
 
@@ -143,6 +146,7 @@ export const ChatLayout = () => {
   const handleRequestAccepted = (chatId: string) => {
     setSelectedChat(chatId);
     setShowChatRequests(false);
+    setActiveTab('chats');
     vibrate([50, 100, 50]); // Success vibration
   };
 
@@ -233,12 +237,13 @@ export const ChatLayout = () => {
           </div>
           
           {/* Action Buttons */}
-          <div className="flex space-x-2">
+          <div className="flex space-x-2 mb-3">
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
                 setShowChatRequests(!showChatRequests);
+                setActiveTab('chats');
                 vibrate(50);
               }}
               className="flex items-center space-x-1 md:space-x-2 flex-1 text-xs md:text-sm touch-target"
@@ -272,17 +277,39 @@ export const ChatLayout = () => {
           )}
         </div>
 
-        {/* Chat List */}
-        <ScrollArea className="flex-1">
-          {showChatRequests ? (
-            <ChatRequestHandler onRequestAccepted={handleRequestAccepted} />
-          ) : (
-            <ChatSidebar 
+        {/* Tabs for Chats and Groups */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <TabsList className="grid w-full grid-cols-2 mx-3 mt-2">
+            <TabsTrigger value="chats" className="text-xs md:text-sm">
+              <MessageSquare className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+              Chats
+            </TabsTrigger>
+            <TabsTrigger value="groups" className="text-xs md:text-sm">
+              <Users className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+              Groups
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="chats" className="flex-1 mt-2">
+            <ScrollArea className="h-full">
+              {showChatRequests ? (
+                <ChatRequestHandler onRequestAccepted={handleRequestAccepted} />
+              ) : (
+                <ChatSidebar 
+                  selectedChat={selectedChat}
+                  onSelectChat={handleChatSelect}
+                />
+              )}
+            </ScrollArea>
+          </TabsContent>
+          
+          <TabsContent value="groups" className="flex-1 mt-2">
+            <GroupList 
               selectedChat={selectedChat}
               onSelectChat={handleChatSelect}
             />
-          )}
-        </ScrollArea>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Main Chat Area */}
@@ -320,7 +347,7 @@ export const ChatLayout = () => {
                 {config.welcomeMessage}
               </h3>
               <p className="text-sm md:text-base text-muted-foreground">
-                Select a chat to start messaging
+                Select a chat or group to start messaging
               </p>
             </div>
           </div>
