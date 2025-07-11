@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { ref, update, get, onValue, off, remove, push } from 'firebase/database';
+import { ref, update, get, onValue, off, remove, push, set } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
 
@@ -62,7 +62,26 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         try {
           const adminRef = ref(database, `admins/${user.uid}`);
           const snapshot = await get(adminRef);
-          setIsAdmin(snapshot.exists());
+          
+          if (snapshot.exists()) {
+            setIsAdmin(true);
+          } else {
+            // Check if there are any admins in the system
+            const allAdminsRef = ref(database, 'admins');
+            const allAdminsSnapshot = await get(allAdminsRef);
+            
+            if (!allAdminsSnapshot.exists()) {
+              // If no admins exist, make this user the first admin
+              await set(adminRef, {
+                email: user.email,
+                displayName: user.displayName,
+                createdAt: Date.now()
+              });
+              setIsAdmin(true);
+            } else {
+              setIsAdmin(false);
+            }
+          }
         } catch (error) {
           console.error("Error checking admin status:", error);
           setIsAdmin(false);

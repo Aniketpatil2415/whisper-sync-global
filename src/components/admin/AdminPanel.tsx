@@ -145,6 +145,13 @@ export const AdminPanel: React.FC = () => {
               <Shield className="h-12 w-12 mx-auto mb-4 text-red-500" />
               <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
               <p className="text-muted-foreground">You don't have admin privileges.</p>
+              <Button 
+                onClick={() => window.location.href = '/'} 
+                variant="outline" 
+                className="mt-4"
+              >
+                Go Back to Chat
+              </Button>
             </div>
           </CardContent>
         </Card>
