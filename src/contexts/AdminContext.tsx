@@ -1,5 +1,6 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { ref, update, get, onValue, off, remove } from 'firebase/database';
+import { ref, update, get, onValue, off, remove, push } from 'firebase/database';
 import { database } from '@/lib/firebase';
 import { useAuth } from './AuthContext';
 
@@ -20,6 +21,9 @@ interface AdminContextProps {
   removeAchievementFromUser: (userId: string, achievement: string) => Promise<void>;
   getUserAnalytics: () => Promise<any>;
   updateGroupMemberLimit: (limit: number) => Promise<void>;
+  deleteMessageForEveryone: (chatId: string, messageId: string) => Promise<void>;
+  banUserFromGroup: (groupId: string, userId: string) => Promise<void>;
+  makeUserGroupAdmin: (groupId: string, userId: string) => Promise<void>;
 }
 
 interface AdminSettings {
@@ -34,7 +38,7 @@ interface AdminSettings {
   };
 }
 
-const AdminContext = createContext<AdminContextProps | undefined>(undefined);
+const AdminContext = createContext<AdminContextProps | null>(null);
 
 const initialSettings: AdminSettings = {
   maintenanceMode: false,
@@ -52,16 +56,23 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [adminSettings, setAdminSettings] = useState<AdminSettings>(initialSettings);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (user) {
-        const adminRef = ref(database, `admins/${user.uid}`);
-        const snapshot = await get(adminRef);
-        setIsAdmin(snapshot.exists());
+        try {
+          const adminRef = ref(database, `admins/${user.uid}`);
+          const snapshot = await get(adminRef);
+          setIsAdmin(snapshot.exists());
+        } catch (error) {
+          console.error("Error checking admin status:", error);
+          setIsAdmin(false);
+        }
       } else {
         setIsAdmin(false);
       }
+      setLoading(false);
     };
 
     checkAdminStatus();
@@ -101,7 +112,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const removeUser = async (userId: string) => {
     try {
       const userRef = ref(database, `users/${userId}`);
-      await update(userRef, { isDisabled: true });
+      await update(userRef, { isDisabled: true, disabledAt: Date.now() });
     } catch (error) {
       console.error("Error removing user:", error);
       throw error;
@@ -112,7 +123,12 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const userRef = ref(database, `users/${userId}`);
       const disableUntil = Date.now() + durationInDays * 24 * 60 * 60 * 1000;
-      await update(userRef, { isDisabled: true, disabledUntil: disableUntil });
+      await update(userRef, { 
+        isDisabled: true, 
+        disabledUntil: disableUntil,
+        disabledAt: Date.now(),
+        disabledBy: user?.uid
+      });
     } catch (error) {
       console.error("Error disabling user:", error);
       throw error;
@@ -131,15 +147,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           [feature]: newValue
         }
       });
-
-      // Update local state
-      setAdminSettings(prevSettings => ({
-        ...prevSettings,
-        featureFlags: {
-          ...prevSettings.featureFlags,
-          [feature]: newValue
-        }
-      }));
     } catch (error) {
       console.error("Error toggling feature:", error);
       throw error;
@@ -153,12 +160,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await update(settingsRef, { 
         maintenanceMode: newValue 
       });
-
-      // Update local state
-      setAdminSettings(prevSettings => ({
-        ...prevSettings,
-        maintenanceMode: newValue
-      }));
     } catch (error) {
       console.error("Error toggling maintenance mode:", error);
       throw error;
@@ -168,7 +169,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const removeGroup = async (groupId: string) => {
     try {
       const groupRef = ref(database, `groups/${groupId}`);
-      await update(groupRef, { isDeleted: true });
+      await update(groupRef, { 
+        isDeleted: true, 
+        deletedAt: Date.now(),
+        deletedBy: user?.uid
+      });
     } catch (error) {
       console.error("Error removing group:", error);
       throw error;
@@ -182,6 +187,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       await update(groupRef, { 
         isDisabled: true, 
         disabledUntil: disableUntil,
+        disabledAt: Date.now(),
         disabledBy: user?.uid
       });
     } catch (error) {
@@ -193,13 +199,32 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deleteChat = async (chatId: string) => {
     try {
       const chatRef = ref(database, `chats/${chatId}`);
-      await update(chatRef, { isDeleted: true });
+      await update(chatRef, { 
+        isDeleted: true,
+        deletedAt: Date.now(),
+        deletedBy: user?.uid
+      });
       
       // Also delete associated messages
       const messagesRef = ref(database, `messages/${chatId}`);
       await remove(messagesRef);
     } catch (error) {
       console.error("Error deleting chat:", error);
+      throw error;
+    }
+  };
+
+  const deleteMessageForEveryone = async (chatId: string, messageId: string) => {
+    try {
+      const messageRef = ref(database, `messages/${chatId}/${messageId}`);
+      await update(messageRef, {
+        isDeleted: true,
+        deletedAt: Date.now(),
+        deletedBy: user?.uid,
+        deletedForEveryone: true
+      });
+    } catch (error) {
+      console.error("Error deleting message:", error);
       throw error;
     }
   };
@@ -240,6 +265,34 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const banUserFromGroup = async (groupId: string, userId: string) => {
+    try {
+      const memberRef = ref(database, `groups/${groupId}/members/${userId}`);
+      await update(memberRef, {
+        isBanned: true,
+        bannedAt: Date.now(),
+        bannedBy: user?.uid
+      });
+    } catch (error) {
+      console.error("Error banning user from group:", error);
+      throw error;
+    }
+  };
+
+  const makeUserGroupAdmin = async (groupId: string, userId: string) => {
+    try {
+      const memberRef = ref(database, `groups/${groupId}/members/${userId}`);
+      await update(memberRef, {
+        role: 'admin',
+        promotedAt: Date.now(),
+        promotedBy: user?.uid
+      });
+    } catch (error) {
+      console.error("Error making user group admin:", error);
+      throw error;
+    }
+  };
+
   const giveAchievementToUser = async (userId: string, achievement: string) => {
     try {
       const userRef = ref(database, `users/${userId}/achievements`);
@@ -271,11 +324,6 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     try {
       const settingsRef = ref(database, 'adminSettings');
       await update(settingsRef, { groupMemberLimit: limit });
-      
-      setAdminSettings(prevSettings => ({
-        ...prevSettings,
-        groupMemberLimit: limit
-      }));
     } catch (error) {
       console.error("Error updating group member limit:", error);
       throw error;
@@ -287,27 +335,31 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const usersRef = ref(database, 'users');
       const chatsRef = ref(database, 'chats');
       const messagesRef = ref(database, 'messages');
+      const groupsRef = ref(database, 'groups');
 
-      const [usersSnapshot, chatsSnapshot, messagesSnapshot] = await Promise.all([
+      const [usersSnapshot, chatsSnapshot, messagesSnapshot, groupsSnapshot] = await Promise.all([
         get(usersRef),
         get(chatsRef),
-        get(messagesRef)
+        get(messagesRef),
+        get(groupsRef)
       ]);
 
       const users = usersSnapshot.val() || {};
       const chats = chatsSnapshot.val() || {};
       const messages = messagesSnapshot.val() || {};
+      const groups = groupsSnapshot.val() || {};
 
       const analytics = {
         totalUsers: Object.keys(users).length,
         onlineUsers: Object.values(users).filter((u: any) => u.isOnline).length,
         verifiedUsers: Object.values(users).filter((u: any) => u.isVerified).length,
         newUsersToday: Object.values(users).filter((u: any) => {
-          const userCreated = u.createdAt || 0;
+          const userCreated = u.createdAt || u.joinedAt || 0;
           const today = new Date().setHours(0, 0, 0, 0);
           return userCreated >= today;
         }).length,
         totalChats: Object.keys(chats).length,
+        totalGroups: Object.keys(groups).length,
         totalMessages: Object.keys(messages).length,
         mostActiveUsers: Object.entries(users)
           .map(([uid, userData]: [string, any]) => ({
@@ -343,7 +395,22 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     removeAchievementFromUser,
     getUserAnalytics,
     updateGroupMemberLimit,
+    deleteMessageForEveryone,
+    banUserFromGroup,
+    makeUserGroupAdmin,
   };
+
+  // Don't render anything until loading is complete
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AdminContext.Provider value={value}>
@@ -354,7 +421,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
 export const useAdmin = () => {
   const context = useContext(AdminContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAdmin must be used within an AdminProvider");
   }
   return context;
